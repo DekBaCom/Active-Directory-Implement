@@ -1245,6 +1245,25 @@ input[type="range"]::-webkit-slider-thumb {
   gap: 4px;
 }
 .footer-bottom p { font-size: 0.78rem; color: var(--text-muted); }
+.footer-contributor {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+.footer-contributor strong { color: var(--text); }
+.footer-sep { color: rgba(255,255,255,0.15); }
+.footer-social {
+  color: var(--accent);
+  text-decoration: none;
+  transition: var(--transition);
+}
+.footer-social:hover { color: var(--primary-light); text-decoration: underline; }
 
 /* ===== BACK TO TOP ===== */
 .back-to-top {
