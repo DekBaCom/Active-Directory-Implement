@@ -1,0 +1,1485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Active Directory Implementation Guide</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+<!-- ===== NAVIGATION ===== -->
+<nav class="navbar" id="navbar">
+  <div class="nav-container">
+    <div class="nav-brand">
+      <div class="brand-icon">&#9670;</div>
+      <span>AD<strong>Implement</strong></span>
+    </div>
+    <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
+      <span></span><span></span><span></span>
+    </button>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="#what-is-ad" class="nav-link">What is AD</a></li>
+      <li><a href="#ad-types" class="nav-link">AD Types</a></li>
+      <li><a href="#windows-editions" class="nav-link">Windows</a></li>
+      <li><a href="#implementation" class="nav-link">Implement</a></li>
+      <li><a href="#architecture" class="nav-link">Architecture</a></li>
+      <li><a href="#calculator" class="nav-link">Cost Calc</a></li>
+      <li><a href="#best-practices" class="nav-link">Best Practices</a></li>
+      <li><a href="#faq" class="nav-link">FAQ</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- ===== HERO ===== -->
+<section class="hero" id="home">
+  <div class="hero-bg"></div>
+  <div class="hero-particles" id="particles"></div>
+  <div class="hero-content">
+    <div class="hero-badge">Enterprise IT Infrastructure</div>
+    <h1 class="hero-title">
+      Active Directory<br/>
+      <span class="gradient-text">Implementation Guide</span>
+    </h1>
+    <p class="hero-desc">
+      Complete guide to design, deploy, and manage Microsoft Active Directory —
+      from concept to production-ready architecture.
+    </p>
+    <div class="hero-stats">
+      <div class="stat-item">
+        <div class="stat-num" data-target="95">0</div>
+        <div class="stat-label">% Enterprise Adoption</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num" data-target="10">0</div>
+        <div class="stat-label">+ AD Service Types</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num" data-target="500">0</div>
+        <div class="stat-label">M+ Users Worldwide</div>
+      </div>
+    </div>
+    <div class="hero-actions">
+      <a href="#what-is-ad" class="btn btn-primary">Start Learning</a>
+      <a href="#calculator" class="btn btn-outline">Cost Calculator</a>
+    </div>
+  </div>
+  <div class="hero-visual">
+    <div class="ad-diagram">
+      <div class="diagram-forest">
+        <span>&#127795; Forest</span>
+        <div class="diagram-domain">
+          <span>&#127968; Domain</span>
+          <div class="diagram-ous">
+            <div class="diagram-ou">&#128101; Users</div>
+            <div class="diagram-ou">&#128187; Computers</div>
+            <div class="diagram-ou">&#128275; Groups</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== WHAT IS AD ===== -->
+<section class="section" id="what-is-ad">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-badge">Chapter 01</div>
+      <h2 class="section-title">What is Active Directory?</h2>
+      <p class="section-desc">Microsoft's directory service that stores information about objects on a network and makes this information available to users and administrators.</p>
+    </div>
+
+    <div class="cards-grid">
+      <div class="card card-blue">
+        <div class="card-icon">&#128274;</div>
+        <h3>Identity & Access</h3>
+        <p>Centralized identity management for users, computers, and services across the enterprise network.</p>
+      </div>
+      <div class="card card-purple">
+        <div class="card-icon">&#128196;</div>
+        <h3>Directory Service</h3>
+        <p>Hierarchical database of network resources following LDAP (Lightweight Directory Access Protocol) standards.</p>
+      </div>
+      <div class="card card-green">
+        <div class="card-icon">&#9881;</div>
+        <h3>Policy Management</h3>
+        <p>Group Policy Objects (GPOs) enable centralized configuration of computers and user settings.</p>
+      </div>
+      <div class="card card-orange">
+        <div class="card-icon">&#128279;</div>
+        <h3>Authentication</h3>
+        <p>Kerberos and NTLM protocols provide secure Single Sign-On (SSO) authentication.</p>
+      </div>
+    </div>
+
+    <div class="timeline-section">
+      <h3 class="subsection-title">AD History Timeline</h3>
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="timeline-year">1999</div>
+          <div class="timeline-content">
+            <h4>Windows 2000 Server</h4>
+            <p>Active Directory introduced as part of Windows 2000 Server, replacing Windows NT domain model.</p>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-year">2003</div>
+          <div class="timeline-content">
+            <h4>Windows Server 2003</h4>
+            <p>Forest and domain functional levels introduced. Cross-forest trusts and improved replication.</p>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-year">2008</div>
+          <div class="timeline-content">
+            <h4>Windows Server 2008</h4>
+            <p>Read-Only Domain Controllers (RODC), fine-grained password policies, AD Recycle Bin preview.</p>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-year">2012</div>
+          <div class="timeline-content">
+            <h4>Windows Server 2012</h4>
+            <p>Dynamic Access Control, AD Recycle Bin GUI, Kerberos armoring, Virtualization-safe replication.</p>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-year">2016</div>
+          <div class="timeline-content">
+            <h4>Windows Server 2016</h4>
+            <p>Privileged Access Management (PAM), Azure AD integration, just-in-time administration.</p>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-year">2019</div>
+          <div class="timeline-content">
+            <h4>Windows Server 2019</h4>
+            <p>Enhanced hybrid cloud support, Security improvements, Azure Arc integration capabilities.</p>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-year">2022</div>
+          <div class="timeline-content">
+            <h4>Windows Server 2022</h4>
+            <p>Secured-core server, TLS 1.3, SMB AES-256 encryption, advanced threat protection built-in.</p>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-year">2024</div>
+          <div class="timeline-content">
+            <h4>Microsoft Entra ID</h4>
+            <p>Azure Active Directory rebranded to Microsoft Entra ID — cloud-native identity platform at scale.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-box">
+      <div class="info-icon">&#128161;</div>
+      <div class="info-content">
+        <h4>Core AD Components</h4>
+        <ul class="component-list">
+          <li><span class="tag">Forest</span> Top-level security and administrative boundary</li>
+          <li><span class="tag">Domain</span> Administrative unit containing users, computers, and groups</li>
+          <li><span class="tag">OU</span> Organizational Unit — logical container for policy application</li>
+          <li><span class="tag">DC</span> Domain Controller — server hosting the AD database (NTDS.dit)</li>
+          <li><span class="tag">GC</span> Global Catalog — partial replica of all objects in the forest</li>
+          <li><span class="tag">FSMO</span> Flexible Single Master Operations — 5 special DC roles</li>
+          <li><span class="tag">GPO</span> Group Policy Object — configuration settings for users/computers</li>
+          <li><span class="tag">Schema</span> Defines all object classes and attributes in the directory</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== AD TYPES ===== -->
+<section class="section section-alt" id="ad-types">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-badge">Chapter 02</div>
+      <h2 class="section-title">Active Directory Types</h2>
+      <p class="section-desc">Microsoft Active Directory comes in multiple service types, each designed for specific use cases and deployment scenarios.</p>
+    </div>
+
+    <div class="tabs-container">
+      <div class="tabs-nav">
+        <button class="tab-btn active" data-tab="adds">AD DS</button>
+        <button class="tab-btn" data-tab="aadds">Azure AD / Entra ID</button>
+        <button class="tab-btn" data-tab="adcs">AD CS</button>
+        <button class="tab-btn" data-tab="adfs">AD FS</button>
+        <button class="tab-btn" data-tab="adlds">AD LDS</button>
+        <button class="tab-btn" data-tab="adrms">AD RMS</button>
+      </div>
+
+      <div class="tab-content active" id="tab-adds">
+        <div class="tab-inner">
+          <div class="tab-info">
+            <div class="tab-badge on-prem">On-Premises</div>
+            <h3>Active Directory Domain Services (AD DS)</h3>
+            <p>The core Active Directory service. Stores directory information and manages communication between users and domains, including user logon processes, authentication, and directory searches.</p>
+            <ul class="feature-list">
+              <li>&#9989; Centralized user and computer management</li>
+              <li>&#9989; Kerberos-based authentication (SSO)</li>
+              <li>&#9989; Group Policy administration</li>
+              <li>&#9989; LDAP directory service</li>
+              <li>&#9989; DNS integration required</li>
+              <li>&#9989; Replication between DCs</li>
+              <li>&#9989; FSMO role management</li>
+              <li>&#9989; Schema extensible</li>
+            </ul>
+          </div>
+          <div class="tab-visual">
+            <div class="service-diagram adds-diagram">
+              <div class="sd-title">AD DS Architecture</div>
+              <div class="sd-forest">
+                <div class="sd-label">&#127795; Forest: contoso.com</div>
+                <div class="sd-domain">
+                  <div class="sd-label">&#127968; Root Domain</div>
+                  <div class="sd-child-domains">
+                    <div class="sd-domain-child">&#127968; Child Domain A</div>
+                    <div class="sd-domain-child">&#127968; Child Domain B</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-content" id="tab-aadds">
+        <div class="tab-inner">
+          <div class="tab-info">
+            <div class="tab-badge cloud">Cloud / Hybrid</div>
+            <h3>Microsoft Entra ID (Azure AD)</h3>
+            <p>Cloud-based identity and access management service. Not a direct replacement for AD DS but complements it for cloud and hybrid scenarios. Supports OAuth 2.0, OIDC, SAML 2.0.</p>
+            <ul class="feature-list">
+              <li>&#9989; Cloud-native identity platform</li>
+              <li>&#9989; Multi-tenant SaaS application support</li>
+              <li>&#9989; Conditional Access policies</li>
+              <li>&#9989; MFA / Passwordless auth</li>
+              <li>&#9989; Identity Protection (risk-based)</li>
+              <li>&#9989; Privileged Identity Management (PIM)</li>
+              <li>&#9989; Azure AD Connect for hybrid sync</li>
+              <li>&#9989; B2B / B2C scenarios</li>
+            </ul>
+            <div class="note-box">
+              <strong>Note:</strong> Azure AD Domain Services (AADDS) provides managed domain services (LDAP, Kerberos, NTLM) without managing DCs.
+            </div>
+          </div>
+          <div class="tab-visual">
+            <div class="service-diagram cloud-diagram">
+              <div class="sd-title">Hybrid Identity Architecture</div>
+              <div class="hybrid-flow">
+                <div class="hybrid-box on-prem-box">&#128187; On-Prem AD DS</div>
+                <div class="hybrid-arrow">&#8644; Azure AD Connect</div>
+                <div class="hybrid-box cloud-box">&#9729; Microsoft Entra ID</div>
+              </div>
+              <div class="hybrid-apps">
+                <div class="app-box">&#128248; Microsoft 365</div>
+                <div class="app-box">&#9729; Azure Apps</div>
+                <div class="app-box">&#128279; SaaS Apps</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-content" id="tab-adcs">
+        <div class="tab-inner">
+          <div class="tab-info">
+            <div class="tab-badge on-prem">On-Premises</div>
+            <h3>Active Directory Certificate Services (AD CS)</h3>
+            <p>Creates a Public Key Infrastructure (PKI) for issuing and managing digital certificates. Enables secure communications, code signing, smart card logon, and data encryption.</p>
+            <ul class="feature-list">
+              <li>&#9989; Certificate Authority (CA) management</li>
+              <li>&#9989; Root CA and Subordinate CA hierarchy</li>
+              <li>&#9989; Auto-enrollment for machine/user certs</li>
+              <li>&#9989; OCSP / CRL distribution</li>
+              <li>&#9989; Smart card authentication</li>
+              <li>&#9989; SSL/TLS certificate issuance</li>
+              <li>&#9989; Code signing certificates</li>
+              <li>&#9989; EFS (Encrypting File System) support</li>
+            </ul>
+          </div>
+          <div class="tab-visual">
+            <div class="service-diagram pki-diagram">
+              <div class="sd-title">PKI Hierarchy</div>
+              <div class="pki-tree">
+                <div class="pki-root">&#127760; Offline Root CA</div>
+                <div class="pki-sub">
+                  <div class="pki-subca">&#127968; Subordinate CA 1</div>
+                  <div class="pki-subca">&#127968; Subordinate CA 2</div>
+                </div>
+                <div class="pki-certs">
+                  <div class="pki-cert">&#128196; User Certs</div>
+                  <div class="pki-cert">&#128187; Machine Certs</div>
+                  <div class="pki-cert">&#128279; Server Certs</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-content" id="tab-adfs">
+        <div class="tab-inner">
+          <div class="tab-info">
+            <div class="tab-badge hybrid">Hybrid</div>
+            <h3>Active Directory Federation Services (AD FS)</h3>
+            <p>Provides federated identity and Single Sign-On for web-based applications across organizational boundaries. Enables claims-based authentication using SAML 2.0, WS-Federation, OAuth 2.0.</p>
+            <ul class="feature-list">
+              <li>&#9989; Cross-organization SSO (federation)</li>
+              <li>&#9989; SAML 2.0 / WS-Federation support</li>
+              <li>&#9989; Claims transformation rules</li>
+              <li>&#9989; Multi-Factor Authentication integration</li>
+              <li>&#9989; Web Application Proxy (WAP)</li>
+              <li>&#9989; Device registration service</li>
+              <li>&#9989; OAuth 2.0 / OpenID Connect</li>
+              <li>&#9989; Token issuance and validation</li>
+            </ul>
+          </div>
+          <div class="tab-visual">
+            <div class="service-diagram adfs-diagram">
+              <div class="sd-title">AD FS Federation Flow</div>
+              <div class="adfs-flow">
+                <div class="adfs-user">&#128100; User</div>
+                <div class="adfs-arrow">&#8594;</div>
+                <div class="adfs-sts">&#128274; AD FS (STS)</div>
+                <div class="adfs-arrow">&#8594;</div>
+                <div class="adfs-app">&#127760; Partner App</div>
+              </div>
+              <div class="adfs-note">Claims-based Token</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-content" id="tab-adlds">
+        <div class="tab-inner">
+          <div class="tab-info">
+            <div class="tab-badge on-prem">On-Premises</div>
+            <h3>Active Directory Lightweight Directory Services (AD LDS)</h3>
+            <p>Provides LDAP directory services for directory-enabled applications without requiring a full AD DS deployment. Runs as a non-OS service, allowing multiple instances per server.</p>
+            <ul class="feature-list">
+              <li>&#9989; Standalone LDAP directory service</li>
+              <li>&#9989; Multiple instances on one server</li>
+              <li>&#9989; No domain/forest dependency</li>
+              <li>&#9989; Custom schema per application</li>
+              <li>&#9989; Application-specific directory data</li>
+              <li>&#9989; Lightweight deployment</li>
+              <li>&#9989; Runs on Server Core</li>
+            </ul>
+          </div>
+          <div class="tab-visual">
+            <div class="service-diagram adlds-diagram">
+              <div class="sd-title">AD LDS Use Cases</div>
+              <div class="adlds-cases">
+                <div class="adlds-case">&#127760; Web App User Store</div>
+                <div class="adlds-case">&#128274; Auth Data Store</div>
+                <div class="adlds-case">&#128196; Custom Directory</div>
+                <div class="adlds-case">&#128187; Dev / Test LDAP</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-content" id="tab-adrms">
+        <div class="tab-inner">
+          <div class="tab-info">
+            <div class="tab-badge on-prem">On-Premises</div>
+            <h3>Active Directory Rights Management Services (AD RMS)</h3>
+            <p>Information protection technology that works with RMS-enabled applications to help safeguard digital information from unauthorized use. Controls access to documents, email, and web content.</p>
+            <ul class="feature-list">
+              <li>&#9989; Document rights management (DRM)</li>
+              <li>&#9989; Email protection (IRM in Exchange)</li>
+              <li>&#9989; Usage policy enforcement</li>
+              <li>&#9989; Persistent content protection</li>
+              <li>&#9989; Offline protection support</li>
+              <li>&#9989; SharePoint integration</li>
+              <li>&#9989; Office application integration</li>
+              <li>&#9745; Superseded by Azure Information Protection</li>
+            </ul>
+          </div>
+          <div class="tab-visual">
+            <div class="service-diagram adrms-diagram">
+              <div class="sd-title">RMS Protection Flow</div>
+              <div class="rms-flow">
+                <div class="rms-step">&#128196; Create Document</div>
+                <div class="rms-arrow">&#8595;</div>
+                <div class="rms-step">&#128274; Apply Rights Policy</div>
+                <div class="rms-arrow">&#8595;</div>
+                <div class="rms-step">&#9948; RMS License Check</div>
+                <div class="rms-arrow">&#8595;</div>
+                <div class="rms-step">&#9989; Authorized Access</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== WINDOWS EDITIONS ===== -->
+<section class="section" id="windows-editions">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-badge">Chapter 03</div>
+      <h2 class="section-title">Windows Server Editions</h2>
+      <p class="section-desc">Choosing the right Windows Server edition is critical for cost optimization and feature requirements.</p>
+    </div>
+
+    <div class="comparison-table-wrapper">
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th class="col-essentials">Essentials 2022</th>
+            <th class="col-standard">Standard 2022</th>
+            <th class="col-datacenter">Datacenter 2022</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Max Processors</td><td>1</td><td>Unlimited</td><td>Unlimited</td></tr>
+          <tr><td>Max RAM</td><td>128 GB</td><td>24 TB</td><td>24 TB</td></tr>
+          <tr><td>User Limit</td><td>25 users</td><td>Unlimited</td><td>Unlimited</td></tr>
+          <tr><td>Domain Controller</td><td class="check">&#9989;</td><td class="check">&#9989;</td><td class="check">&#9989;</td></tr>
+          <tr><td>CALs Required</td><td class="cross">&#10060; No</td><td class="check">&#9989; Yes</td><td class="check">&#9989; Yes</td></tr>
+          <tr><td>VMs per License</td><td>1 VM</td><td>2 VMs</td><td>Unlimited</td></tr>
+          <tr><td>Hyper-V</td><td class="cross">&#10060;</td><td class="check">&#9989;</td><td class="check">&#9989;</td></tr>
+          <tr><td>Storage Spaces Direct</td><td class="cross">&#10060;</td><td class="cross">&#10060;</td><td class="check">&#9989;</td></tr>
+          <tr><td>Shielded VMs</td><td class="cross">&#10060;</td><td class="check">&#9989;</td><td class="check">&#9989;</td></tr>
+          <tr><td>Storage Replica</td><td class="cross">&#10060;</td><td class="check">Limited</td><td class="check">&#9989;</td></tr>
+          <tr><td>Network Controller</td><td class="cross">&#10060;</td><td class="cross">&#10060;</td><td class="check">&#9989;</td></tr>
+          <tr><td>Approx. License Price</td><td class="price">~$501</td><td class="price">~$1,069</td><td class="price">~$6,155</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="edition-cards">
+      <div class="edition-card">
+        <div class="edition-badge badge-essentials">Essentials</div>
+        <h3>Best For</h3>
+        <p>Small businesses with up to 25 users. Simple file/print sharing, basic domain services. No VM stacking.</p>
+        <div class="edition-use-cases">
+          <span>Small Office</span>
+          <span>Simple Domain</span>
+          <span>No Virtualization</span>
+        </div>
+      </div>
+      <div class="edition-card recommended">
+        <div class="recommended-badge">Most Common</div>
+        <div class="edition-badge badge-standard">Standard</div>
+        <h3>Best For</h3>
+        <p>Medium to large environments. Supports 2 VMs per license. Ideal for non-heavily virtualized DCs.</p>
+        <div class="edition-use-cases">
+          <span>Mid-size Enterprise</span>
+          <span>Multiple DCs</span>
+          <span>Moderate VMs</span>
+        </div>
+      </div>
+      <div class="edition-card">
+        <div class="edition-badge badge-datacenter">Datacenter</div>
+        <h3>Best For</h3>
+        <p>Highly virtualized datacenters. Unlimited VMs. Required for SDN, Storage Spaces Direct, Shielded VMs.</p>
+        <div class="edition-use-cases">
+          <span>Large Enterprise</span>
+          <span>Hyper-V Hosts</span>
+          <span>Full SDN / S2D</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="functional-levels">
+      <h3 class="subsection-title">Domain & Forest Functional Levels</h3>
+      <div class="fl-grid">
+        <div class="fl-item">
+          <div class="fl-ver">Win Server 2008 R2</div>
+          <div class="fl-features">AD Recycle Bin, Managed Service Accounts</div>
+        </div>
+        <div class="fl-item">
+          <div class="fl-ver">Win Server 2012</div>
+          <div class="fl-features">KDC support for claims, compound auth, Kerberos armoring</div>
+        </div>
+        <div class="fl-item">
+          <div class="fl-ver">Win Server 2012 R2</div>
+          <div class="fl-features">Protected Users group, Authentication Policy Silos</div>
+        </div>
+        <div class="fl-item">
+          <div class="fl-ver">Win Server 2016</div>
+          <div class="fl-features">Privileged Access Management (PAM) forest trust</div>
+        </div>
+        <div class="fl-item fl-current">
+          <div class="fl-ver">Win Server 2019 / 2022</div>
+          <div class="fl-features">No new FL features yet; inherits all 2016 features</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== IMPLEMENTATION ===== -->
+<section class="section section-alt" id="implementation">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-badge">Chapter 04</div>
+      <h2 class="section-title">Implementation Solution</h2>
+      <p class="section-desc">Step-by-step guide to deploying Active Directory in your organization.</p>
+    </div>
+
+    <div class="impl-phases">
+      <div class="phase">
+        <div class="phase-num">01</div>
+        <div class="phase-content">
+          <h3>Planning & Assessment</h3>
+          <div class="phase-steps">
+            <div class="step">
+              <div class="step-icon">&#128203;</div>
+              <div class="step-text">
+                <h4>Inventory Current Environment</h4>
+                <p>Document existing users, computers, groups, applications, and network topology.</p>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-icon">&#127968;</div>
+              <div class="step-text">
+                <h4>Design Domain Structure</h4>
+                <p>Determine number of forests, domains, domain names (use .local vs routable DNS suffix).</p>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-icon">&#128101;</div>
+              <div class="step-text">
+                <h4>Plan OU Hierarchy</h4>
+                <p>Design OU structure based on administrative delegation, not org chart. Reflect GPO application needs.</p>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-icon">&#128279;</div>
+              <div class="step-text">
+                <h4>Define Site Topology</h4>
+                <p>Map physical locations to AD Sites. Plan site links and replication schedule.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-num">02</div>
+        <div class="phase-content">
+          <h3>Infrastructure Preparation</h3>
+          <div class="phase-steps">
+            <div class="step">
+              <div class="step-icon">&#128187;</div>
+              <div class="step-text">
+                <h4>Server Hardware / VMs</h4>
+                <p>Minimum: 2 vCPU, 4 GB RAM, 60 GB disk per DC. Recommended: 4 vCPU, 8 GB RAM, 100 GB.</p>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-icon">&#128225;</div>
+              <div class="step-text">
+                <h4>Network Configuration</h4>
+                <p>Static IP for all DCs. Configure DNS to point to itself (first DC) or other DCs. Ensure ports open: TCP/UDP 88, 389, 636, 3268, 3269, 445, 49152-65535.</p>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-icon">&#128196;</div>
+              <div class="step-text">
+                <h4>OS Installation & Updates</h4>
+                <p>Install Windows Server, apply all updates. Rename server before promotion. Join to workgroup (not another domain yet).</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-num">03</div>
+        <div class="phase-content">
+          <h3>AD DS Deployment</h3>
+          <div class="code-block">
+            <div class="code-header">
+              <span>PowerShell — Install AD DS Role & Promote First DC</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre><code><span class="comment"># Step 1: Install AD DS role</span>
+Install-WindowsFeature -Name AD-Domain-Services -IncludeManagementTools
+
+<span class="comment"># Step 2: Import ADDSDeployment module</span>
+Import-Module ADDSDeployment
+
+<span class="comment"># Step 3: Promote to Domain Controller (New Forest)</span>
+Install-ADDSForest `
+  -DomainName "contoso.com" `
+  -DomainNetbiosName "CONTOSO" `
+  -DomainMode "WinThreshold" `
+  -ForestMode "WinThreshold" `
+  -DatabasePath "C:\Windows\NTDS" `
+  -LogPath "C:\Windows\NTDS" `
+  -SysvolPath "C:\Windows\SYSVOL" `
+  -InstallDns:$true `
+  -SafeModeAdministratorPassword (ConvertTo-SecureString `
+    "P@ssw0rd123!" -AsPlainText -Force) `
+  -Force:$true
+
+<span class="comment"># Server will automatically restart after promotion</span></code></pre>
+          </div>
+
+          <div class="code-block">
+            <div class="code-header">
+              <span>PowerShell — Add Additional Domain Controller</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre><code><span class="comment"># Install AD DS role on second server</span>
+Install-WindowsFeature -Name AD-Domain-Services -IncludeManagementTools
+
+<span class="comment"># Promote as additional DC in existing domain</span>
+Install-ADDSDomainController `
+  -DomainName "contoso.com" `
+  -InstallDns:$true `
+  -Credential (Get-Credential "CONTOSO\Administrator") `
+  -SafeModeAdministratorPassword (ConvertTo-SecureString `
+    "P@ssw0rd123!" -AsPlainText -Force) `
+  -Force:$true</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-num">04</div>
+        <div class="phase-content">
+          <h3>Post-Deployment Configuration</h3>
+          <div class="phase-steps">
+            <div class="step">
+              <div class="step-icon">&#128275;</div>
+              <div class="step-text">
+                <h4>Create OU Structure</h4>
+                <p>Build OU hierarchy. Delegate control to appropriate admin teams. Move default computer/user objects.</p>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-icon">&#9881;</div>
+              <div class="step-text">
+                <h4>Configure Group Policies</h4>
+                <p>Create baseline GPOs: Password Policy, Account Lockout, Security Baseline, Software Deployment.</p>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-icon">&#128101;</div>
+              <div class="step-text">
+                <h4>Create User Accounts & Groups</h4>
+                <p>Bulk create users from HR data. Implement RBAC with security groups. Apply least privilege.</p>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-icon">&#128196;</div>
+              <div class="step-text">
+                <h4>Verify FSMO Roles</h4>
+                <p>Run <code>netdom query fsmo</code> to confirm role placement. Plan FSMO distribution across DCs.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="code-block">
+            <div class="code-header">
+              <span>PowerShell — Common Post-Deployment Tasks</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre><code><span class="comment"># Create OU structure</span>
+New-ADOrganizationalUnit -Name "Corp" -Path "DC=contoso,DC=com"
+New-ADOrganizationalUnit -Name "Users" -Path "OU=Corp,DC=contoso,DC=com"
+New-ADOrganizationalUnit -Name "Computers" -Path "OU=Corp,DC=contoso,DC=com"
+New-ADOrganizationalUnit -Name "Groups" -Path "OU=Corp,DC=contoso,DC=com"
+New-ADOrganizationalUnit -Name "Servers" -Path "OU=Corp,DC=contoso,DC=com"
+
+<span class="comment"># Create user accounts in bulk from CSV</span>
+Import-Csv "C:\users.csv" | ForEach-Object {
+  New-ADUser `
+    -Name "$($_.FirstName) $($_.LastName)" `
+    -GivenName $_.FirstName `
+    -Surname $_.LastName `
+    -SamAccountName $_.Username `
+    -UserPrincipalName "$($_.Username)@contoso.com" `
+    -Path "OU=Users,OU=Corp,DC=contoso,DC=com" `
+    -AccountPassword (ConvertTo-SecureString $_.Password -AsPlainText -Force) `
+    -Enabled $true `
+    -ChangePasswordAtLogon $true
+}
+
+<span class="comment"># Verify FSMO roles</span>
+netdom query fsmo
+
+<span class="comment"># Check AD replication</span>
+repadmin /replsummary
+repadmin /showrepl</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-num">05</div>
+        <div class="phase-content">
+          <h3>Hybrid Identity (Optional)</h3>
+          <div class="phase-steps">
+            <div class="step">
+              <div class="step-icon">&#9729;</div>
+              <div class="step-text">
+                <h4>Install Azure AD Connect</h4>
+                <p>Sync on-premises identities to Microsoft Entra ID. Choose sync method: Password Hash Sync, Pass-Through Auth, or Federation.</p>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-icon">&#128274;</div>
+              <div class="step-text">
+                <h4>Configure Conditional Access</h4>
+                <p>Set up Entra ID Conditional Access policies. Require MFA for cloud applications. Enable risk-based policies.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== ARCHITECTURE ===== -->
+<section class="section" id="architecture">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-badge">Chapter 05</div>
+      <h2 class="section-title">Architecture Design</h2>
+      <p class="section-desc">Reference architectures for small, medium, and enterprise-scale Active Directory deployments.</p>
+    </div>
+
+    <div class="arch-tabs">
+      <div class="tabs-nav">
+        <button class="tab-btn active" data-tab="arch-small">Small (< 500 users)</button>
+        <button class="tab-btn" data-tab="arch-medium">Medium (500–5,000)</button>
+        <button class="tab-btn" data-tab="arch-enterprise">Enterprise (5,000+)</button>
+        <button class="tab-btn" data-tab="arch-hybrid">Hybrid Cloud</button>
+      </div>
+
+      <div class="tab-content active" id="tab-arch-small">
+        <div class="arch-layout">
+          <div class="arch-diagram small-arch">
+            <div class="arch-title">Single Domain Design</div>
+            <div class="arch-forest-box">
+              <div class="arch-forest-label">Forest: company.com (Single)</div>
+              <div class="arch-domain-box">
+                <div class="arch-domain-label">&#127968; Domain: company.com</div>
+                <div class="arch-dc-row">
+                  <div class="arch-dc primary-dc">
+                    <div>&#128187;</div>
+                    <div>DC-01 (PDC)</div>
+                    <div class="dc-role">All FSMO roles</div>
+                  </div>
+                  <div class="arch-dc secondary-dc">
+                    <div>&#128187;</div>
+                    <div>DC-02</div>
+                    <div class="dc-role">Redundancy</div>
+                  </div>
+                </div>
+                <div class="arch-ou-row">
+                  <div class="arch-ou">&#128101; Users OU</div>
+                  <div class="arch-ou">&#128187; Computers OU</div>
+                  <div class="arch-ou">&#128275; Groups OU</div>
+                </div>
+              </div>
+            </div>
+            <div class="arch-clients">
+              <div class="arch-client">&#128187; Workstations</div>
+              <div class="arch-client">&#128225; File Server</div>
+              <div class="arch-client">&#127760; Print Server</div>
+            </div>
+          </div>
+          <div class="arch-specs">
+            <h4>Specifications</h4>
+            <ul>
+              <li><strong>Domain Controllers:</strong> 2 DCs (1 primary, 1 standby)</li>
+              <li><strong>FSMO:</strong> All roles on DC-01, Schema Master optionally on DC-02</li>
+              <li><strong>DNS:</strong> AD-integrated DNS on both DCs</li>
+              <li><strong>Sites:</strong> Single AD site</li>
+              <li><strong>OU Depth:</strong> 3-4 levels maximum</li>
+              <li><strong>Replication:</strong> Within site (auto, every 15 min)</li>
+              <li><strong>Backup:</strong> Daily System State backup</li>
+            </ul>
+            <div class="arch-rec">
+              <strong>&#128161; Recommendation:</strong> Windows Server 2022 Standard. 2 DCs minimum for redundancy. Keep it simple — one domain, flat OU structure.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-content" id="tab-arch-medium">
+        <div class="arch-layout">
+          <div class="arch-diagram medium-arch">
+            <div class="arch-title">Regional Domain Design</div>
+            <div class="arch-forest-box">
+              <div class="arch-forest-label">Forest: corp.com</div>
+              <div class="arch-domain-box">
+                <div class="arch-domain-label">&#127968; Root: corp.com</div>
+                <div class="arch-dc-row">
+                  <div class="arch-dc primary-dc"><div>&#128187;</div><div>DC-HQ-01</div></div>
+                  <div class="arch-dc secondary-dc"><div>&#128187;</div><div>DC-HQ-02</div></div>
+                  <div class="arch-dc gc-dc"><div>&#128187;</div><div>GC Server</div></div>
+                </div>
+              </div>
+              <div class="arch-sites-row">
+                <div class="arch-site">
+                  <div class="arch-site-label">&#127968; Site: Bangkok</div>
+                  <div class="arch-dc"><div>&#128187;</div><div>DC-BKK-01</div></div>
+                </div>
+                <div class="arch-site">
+                  <div class="arch-site-label">&#127968; Site: Chiang Mai</div>
+                  <div class="arch-dc"><div>&#128187;</div><div>DC-CNX-01</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="arch-specs">
+            <h4>Specifications</h4>
+            <ul>
+              <li><strong>Domain Controllers:</strong> 4-6 DCs across sites</li>
+              <li><strong>FSMO:</strong> Distributed (Schema/Dom Naming on HQ DCs)</li>
+              <li><strong>Global Catalog:</strong> At least 1 GC per site</li>
+              <li><strong>Sites & Services:</strong> One site per physical location</li>
+              <li><strong>Site Links:</strong> Define cost based on WAN bandwidth</li>
+              <li><strong>DNS:</strong> AD-integrated, conditional forwarders</li>
+              <li><strong>RODC:</strong> Consider for branch offices with limited security</li>
+            </ul>
+            <div class="arch-rec">
+              <strong>&#128161; Recommendation:</strong> Standard edition per DC. Consider RODC for branch offices. Implement AD Sites & Services properly for efficient replication.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-content" id="tab-arch-enterprise">
+        <div class="arch-layout">
+          <div class="arch-diagram enterprise-arch">
+            <div class="arch-title">Multi-Domain Forest Design</div>
+            <div class="arch-forest-box">
+              <div class="arch-forest-label">Forest Root: corp.com (Empty Root)</div>
+              <div class="arch-domain-box">
+                <div class="arch-domain-label">&#127968; Forest Root DC (2 DCs, no users)</div>
+              </div>
+              <div class="arch-child-domains">
+                <div class="arch-child">
+                  <div class="arch-child-label">&#127968; asia.corp.com</div>
+                  <div class="arch-dc-mini">DC-AS-01</div>
+                  <div class="arch-dc-mini">DC-AS-02</div>
+                </div>
+                <div class="arch-child">
+                  <div class="arch-child-label">&#127968; emea.corp.com</div>
+                  <div class="arch-dc-mini">DC-EU-01</div>
+                  <div class="arch-dc-mini">DC-EU-02</div>
+                </div>
+                <div class="arch-child">
+                  <div class="arch-child-label">&#127968; americas.corp.com</div>
+                  <div class="arch-dc-mini">DC-US-01</div>
+                  <div class="arch-dc-mini">DC-US-02</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="arch-specs">
+            <h4>Specifications</h4>
+            <ul>
+              <li><strong>Forest:</strong> Empty root domain + child domains per region</li>
+              <li><strong>DCs:</strong> 2+ per domain, geographically distributed</li>
+              <li><strong>FSMO:</strong> Schema/Dom Naming on root, RID/PDC/Infra per child</li>
+              <li><strong>Global Catalog:</strong> Multiple GC servers per region</li>
+              <li><strong>Admin Tiers:</strong> Tier 0 (DA), Tier 1 (Server Admin), Tier 2 (Workstation)</li>
+              <li><strong>PAM:</strong> Privileged Access Workstations (PAWs)</li>
+              <li><strong>Monitoring:</strong> Microsoft Defender for Identity (MDI)</li>
+            </ul>
+            <div class="arch-rec">
+              <strong>&#128161; Recommendation:</strong> Datacenter edition for virtualization hosts. Implement tiered administration model. Deploy MDI for threat detection.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-content" id="tab-arch-hybrid">
+        <div class="arch-layout">
+          <div class="arch-diagram hybrid-arch">
+            <div class="arch-title">Hybrid Identity Architecture</div>
+            <div class="hybrid-arch-layout">
+              <div class="hybrid-on-prem">
+                <div class="hybrid-section-label">On-Premises</div>
+                <div class="arch-domain-box">
+                  <div>&#127968; AD DS</div>
+                  <div class="arch-dc-row-mini">
+                    <div class="arch-dc-mini">DC-01</div>
+                    <div class="arch-dc-mini">DC-02</div>
+                  </div>
+                </div>
+                <div class="arch-connect">&#8645; Azure AD Connect</div>
+              </div>
+              <div class="hybrid-cloud">
+                <div class="hybrid-section-label">Microsoft Cloud</div>
+                <div class="cloud-services">
+                  <div class="cloud-svc">&#9729; Microsoft Entra ID</div>
+                  <div class="cloud-svc">&#128248; Microsoft 365</div>
+                  <div class="cloud-svc">&#9774; Azure Resources</div>
+                  <div class="cloud-svc">&#128274; Conditional Access</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="arch-specs">
+            <h4>Hybrid Components</h4>
+            <ul>
+              <li><strong>Azure AD Connect:</strong> Identity sync (PHS recommended)</li>
+              <li><strong>Entra ID P2:</strong> PIM, Identity Protection, Access Reviews</li>
+              <li><strong>Conditional Access:</strong> Risk-based MFA policies</li>
+              <li><strong>Hybrid Join:</strong> Devices registered in both AD and Entra ID</li>
+              <li><strong>SSPR:</strong> Self-Service Password Reset with writeback</li>
+              <li><strong>App Proxy:</strong> Publish on-prem apps via Entra App Proxy</li>
+            </ul>
+            <div class="arch-rec">
+              <strong>&#128161; Recommendation:</strong> Password Hash Sync is the most resilient sync method. Enable Seamless SSO. Use Entra ID P2 for advanced identity security.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="fsmo-section">
+      <h3 class="subsection-title">FSMO Roles Reference</h3>
+      <div class="fsmo-grid">
+        <div class="fsmo-card forest-scope">
+          <div class="fsmo-scope">Forest-wide (1 per forest)</div>
+          <div class="fsmo-role">
+            <h4>&#127760; Schema Master</h4>
+            <p>Controls all changes to the AD schema. Only one per forest. Keep on a secure, well-maintained DC.</p>
+          </div>
+          <div class="fsmo-role">
+            <h4>&#127968; Domain Naming Master</h4>
+            <p>Controls addition/removal of domains in the forest. Must be a Global Catalog server.</p>
+          </div>
+        </div>
+        <div class="fsmo-card domain-scope">
+          <div class="fsmo-scope">Domain-wide (1 per domain)</div>
+          <div class="fsmo-role">
+            <h4>&#128196; RID Master</h4>
+            <p>Allocates pools of relative identifiers (RIDs) to DCs, ensuring unique SIDs for all objects.</p>
+          </div>
+          <div class="fsmo-role">
+            <h4>&#128197; PDC Emulator</h4>
+            <p>Password changes, account lockouts, time synchronization, legacy client support. Most sensitive role.</p>
+          </div>
+          <div class="fsmo-role">
+            <h4>&#128279; Infrastructure Master</h4>
+            <p>Updates cross-domain group-to-user references. Should NOT be on a GC server (unless all DCs are GCs).</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== COST CALCULATOR ===== -->
+<section class="section section-alt" id="calculator">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-badge">Chapter 06</div>
+      <h2 class="section-title">Cost Estimator</h2>
+      <p class="section-desc">Estimate your Active Directory implementation costs based on your organization's requirements.</p>
+    </div>
+
+    <div class="calculator-wrapper">
+      <div class="calc-inputs">
+        <h3>&#9881; Configuration Parameters</h3>
+
+        <div class="input-group">
+          <label>Number of Users</label>
+          <div class="slider-group">
+            <input type="range" id="numUsers" min="10" max="10000" value="100" step="10" oninput="updateCalc()" />
+            <span class="slider-val" id="numUsersVal">100</span>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>Number of Domain Controllers</label>
+          <div class="slider-group">
+            <input type="range" id="numDCs" min="2" max="20" value="2" step="1" oninput="updateCalc()" />
+            <span class="slider-val" id="numDCsVal">2</span>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>Number of Physical Sites/Locations</label>
+          <div class="slider-group">
+            <input type="range" id="numSites" min="1" max="20" value="1" step="1" oninput="updateCalc()" />
+            <span class="slider-val" id="numSitesVal">1</span>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>Windows Server Edition</label>
+          <div class="select-group">
+            <select id="serverEdition" onchange="updateCalc()">
+              <option value="essentials">Essentials 2022 (~$501)</option>
+              <option value="standard" selected>Standard 2022 (~$1,069)</option>
+              <option value="datacenter">Datacenter 2022 (~$6,155)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>Deployment Model</label>
+          <div class="select-group">
+            <select id="deployModel" onchange="updateCalc()">
+              <option value="onprem">On-Premises (Physical)</option>
+              <option value="virtual" selected>On-Premises (Virtualized)</option>
+              <option value="hybrid">Hybrid (On-Prem + Azure)</option>
+              <option value="cloud">Cloud Only (Azure AADDS)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>Entra ID (Azure AD) License</label>
+          <div class="select-group">
+            <select id="azureLicense" onchange="updateCalc()">
+              <option value="none">None (On-Prem only)</option>
+              <option value="free">Entra ID Free</option>
+              <option value="p1">Entra ID P1 (~$6/user/mo)</option>
+              <option value="p2">Entra ID P2 (~$9/user/mo)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>CAL (Client Access License) Type</label>
+          <div class="select-group">
+            <select id="calType" onchange="updateCalc()">
+              <option value="device">Device CAL (~$38/device)</option>
+              <option value="user" selected>User CAL (~$38/user)</option>
+              <option value="none">Essentials (No CAL required)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="includeHardware" onchange="updateCalc()" checked />
+            Include Server Hardware (~$3,000/server)
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="includeProServices" onchange="updateCalc()" />
+            Include Professional Services (~$150/hr, 40hr)
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="includeADCS" onchange="updateCalc()" />
+            Include AD CS (PKI) Setup
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="includeMDI" onchange="updateCalc()" />
+            Include Microsoft Defender for Identity (~$5.5/user/mo)
+          </label>
+        </div>
+      </div>
+
+      <div class="calc-results">
+        <h3>&#128200; Cost Estimate</h3>
+        <div class="cost-breakdown">
+          <div class="cost-item">
+            <span class="cost-label">Windows Server Licenses</span>
+            <span class="cost-value" id="costLicenses">$2,138</span>
+          </div>
+          <div class="cost-item">
+            <span class="cost-label">Client Access Licenses (CALs)</span>
+            <span class="cost-value" id="costCALs">$3,800</span>
+          </div>
+          <div class="cost-item">
+            <span class="cost-label">Server Hardware</span>
+            <span class="cost-value" id="costHardware">$6,000</span>
+          </div>
+          <div class="cost-item">
+            <span class="cost-label">Azure AD / Entra ID (Annual)</span>
+            <span class="cost-value" id="costAzure">$0</span>
+          </div>
+          <div class="cost-item">
+            <span class="cost-label">Professional Services</span>
+            <span class="cost-value" id="costProServices">$0</span>
+          </div>
+          <div class="cost-item">
+            <span class="cost-label">AD CS / PKI Setup</span>
+            <span class="cost-value" id="costADCS">$0</span>
+          </div>
+          <div class="cost-item">
+            <span class="cost-label">Microsoft Defender for Identity</span>
+            <span class="cost-value" id="costMDI">$0</span>
+          </div>
+          <div class="cost-divider"></div>
+          <div class="cost-item total-row">
+            <span class="cost-label">&#128200; Total Upfront Cost</span>
+            <span class="cost-value total-value" id="costTotal">$11,938</span>
+          </div>
+          <div class="cost-item annual-row">
+            <span class="cost-label">&#128197; Estimated Annual Recurring</span>
+            <span class="cost-value annual-value" id="costAnnual">$0</span>
+          </div>
+        </div>
+
+        <div class="cost-chart">
+          <div class="chart-label">Cost Distribution</div>
+          <div class="chart-bars" id="chartBars"></div>
+        </div>
+
+        <div class="cost-notes">
+          <p>&#9888;&#65039; <em>Estimates are based on MSRP pricing. Actual costs vary by region, volume licensing agreements, and negotiated discounts. Software Assurance may add 25-29% annually but includes upgrade rights.</em></p>
+        </div>
+
+        <button class="btn btn-primary" onclick="downloadEstimate()">&#128196; Download Estimate</button>
+      </div>
+    </div>
+
+    <div class="licensing-models">
+      <h3 class="subsection-title">Licensing Models Comparison</h3>
+      <div class="lm-grid">
+        <div class="lm-card">
+          <h4>&#128274; Perpetual License</h4>
+          <p>One-time purchase. Requires CALs. SA optional for upgrades. Best for stable, long-term deployments.</p>
+          <div class="lm-pros-cons">
+            <div class="pros">+ Predictable cost, no recurring fees</div>
+            <div class="cons">- Upfront investment, upgrade costs</div>
+          </div>
+        </div>
+        <div class="lm-card">
+          <h4>&#128196; Volume Licensing (EA)</h4>
+          <p>Enterprise Agreement. Covers all servers + CALs. Includes Software Assurance. 3-year commitment.</p>
+          <div class="lm-pros-cons">
+            <div class="pros">+ Latest versions, Azure hybrid benefit</div>
+            <div class="cons">- 3-year commitment, higher annual cost</div>
+          </div>
+        </div>
+        <div class="lm-card">
+          <h4>&#9729; Azure SPLA</h4>
+          <p>Service Provider License Agreement. Per-user monthly billing. Best for MSPs and cloud deployments.</p>
+          <div class="lm-pros-cons">
+            <div class="pros">+ Pay-as-you-go, no upfront</div>
+            <div class="cons">- Higher total cost over time</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== BEST PRACTICES ===== -->
+<section class="section" id="best-practices">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-badge">Chapter 07</div>
+      <h2 class="section-title">Best Practices</h2>
+      <p class="section-desc">Security hardening, operational excellence, and maintenance guidelines for Active Directory.</p>
+    </div>
+
+    <div class="bp-categories">
+      <div class="bp-category">
+        <div class="bp-icon">&#128274;</div>
+        <h3>Security Hardening</h3>
+        <ul class="bp-list">
+          <li>&#9989; Implement Tiered Administration Model (Tier 0/1/2)</li>
+          <li>&#9989; Use Privileged Access Workstations (PAWs) for Tier 0 admin</li>
+          <li>&#9989; Enable Protected Users security group for privileged accounts</li>
+          <li>&#9989; Disable NTLM where possible; enforce Kerberos</li>
+          <li>&#9989; Configure Authentication Policy Silos</li>
+          <li>&#9989; Enable AD Recycle Bin</li>
+          <li>&#9989; Audit all changes to privileged groups</li>
+          <li>&#9989; Deploy Microsoft Defender for Identity (MDI)</li>
+          <li>&#9989; Disable legacy protocols (LM hash, NTLMv1)</li>
+          <li>&#9989; Set 120-day maximum password age with 14+ char minimum</li>
+        </ul>
+      </div>
+
+      <div class="bp-category">
+        <div class="bp-icon">&#9881;</div>
+        <h3>Operations & Maintenance</h3>
+        <ul class="bp-list">
+          <li>&#9989; Minimum 2 DCs per domain (never just 1)</li>
+          <li>&#9989; Never run DCs as Tier 1 or 2 servers (dedicated role)</li>
+          <li>&#9989; Keep DCs fully patched (cumulative updates monthly)</li>
+          <li>&#9989; Schedule regular SYSVOL health checks</li>
+          <li>&#9989; Monitor replication with repadmin /replsummary</li>
+          <li>&#9989; Test FSMO seizure procedures in lab regularly</li>
+          <li>&#9989; Document all OU delegations and GPO links</li>
+          <li>&#9989; Clean up stale computer accounts (90-day threshold)</li>
+          <li>&#9989; Quarterly AD health assessments</li>
+          <li>&#9989; Use AGDLP (Account→Global→DomainLocal→Permission)</li>
+        </ul>
+      </div>
+
+      <div class="bp-category">
+        <div class="bp-icon">&#128190;</div>
+        <h3>Backup & Recovery</h3>
+        <ul class="bp-list">
+          <li>&#9989; Daily System State backups of all DCs</li>
+          <li>&#9989; Test restore procedures quarterly</li>
+          <li>&#9989; Keep backups for at least 180 days (tombstone lifetime)</li>
+          <li>&#9989; Store backups off-site or in Azure Backup</li>
+          <li>&#9989; Document DSRM password and store securely</li>
+          <li>&#9989; Know how to perform authoritative restore</li>
+          <li>&#9989; Document the steps to build a DC from scratch</li>
+          <li>&#9989; Backup GPO configurations using GPMC</li>
+        </ul>
+      </div>
+
+      <div class="bp-category">
+        <div class="bp-icon">&#128202;</div>
+        <h3>Monitoring & Alerting</h3>
+        <ul class="bp-list">
+          <li>&#9989; Monitor Event ID 4768 (TGT requests), 4769, 4771</li>
+          <li>&#9989; Alert on Event ID 4720/4722 (account created/enabled)</li>
+          <li>&#9989; Alert on group membership changes (4728, 4732, 4756)</li>
+          <li>&#9989; Monitor SYSVOL replication (DFSR)</li>
+          <li>&#9989; Track logon failures (Event ID 4625)</li>
+          <li>&#9989; Watch for Kerberoasting / Pass-the-Hash indicators</li>
+          <li>&#9989; Deploy Microsoft Sentinel with AD connector</li>
+          <li>&#9989; Set up SIEM alerts for Golden Ticket attacks</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="security-checklist">
+      <h3 class="subsection-title">&#9745; AD Security Checklist</h3>
+      <div class="checklist-grid">
+        <div class="checklist-item" id="cl1" onclick="toggleCheck('cl1')">
+          <span class="cl-check">&#9744;</span>
+          <span>Domain Functional Level raised to maximum supported</span>
+        </div>
+        <div class="checklist-item" id="cl2" onclick="toggleCheck('cl2')">
+          <span class="cl-check">&#9744;</span>
+          <span>AD Recycle Bin enabled</span>
+        </div>
+        <div class="checklist-item" id="cl3" onclick="toggleCheck('cl3')">
+          <span class="cl-check">&#9744;</span>
+          <span>Fine-Grained Password Policy for admin accounts</span>
+        </div>
+        <div class="checklist-item" id="cl4" onclick="toggleCheck('cl4')">
+          <span class="cl-check">&#9744;</span>
+          <span>LAPS deployed for local admin password management</span>
+        </div>
+        <div class="checklist-item" id="cl5" onclick="toggleCheck('cl5')">
+          <span class="cl-check">&#9744;</span>
+          <span>SMB signing enforced via GPO</span>
+        </div>
+        <div class="checklist-item" id="cl6" onclick="toggleCheck('cl6')">
+          <span class="cl-check">&#9744;</span>
+          <span>LDAP signing and channel binding required</span>
+        </div>
+        <div class="checklist-item" id="cl7" onclick="toggleCheck('cl7')">
+          <span class="cl-check">&#9744;</span>
+          <span>krbtgt password rotated (twice) after incidents</span>
+        </div>
+        <div class="checklist-item" id="cl8" onclick="toggleCheck('cl8')">
+          <span class="cl-check">&#9744;</span>
+          <span>Domain Admins not used for day-to-day admin tasks</span>
+        </div>
+        <div class="checklist-item" id="cl9" onclick="toggleCheck('cl9')">
+          <span class="cl-check">&#9744;</span>
+          <span>WDigest authentication disabled (prevent cleartext in LSASS)</span>
+        </div>
+        <div class="checklist-item" id="cl10" onclick="toggleCheck('cl10')">
+          <span class="cl-check">&#9744;</span>
+          <span>Credential Guard enabled on Tier 0 servers</span>
+        </div>
+        <div class="checklist-item" id="cl11" onclick="toggleCheck('cl11')">
+          <span class="cl-check">&#9744;</span>
+          <span>No service accounts with Kerberos delegation (unconstrained)</span>
+        </div>
+        <div class="checklist-item" id="cl12" onclick="toggleCheck('cl12')">
+          <span class="cl-check">&#9744;</span>
+          <span>Microsoft Defender for Identity deployed</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FAQ ===== -->
+<section class="section section-alt" id="faq">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-badge">Chapter 08</div>
+      <h2 class="section-title">FAQ & Resources</h2>
+      <p class="section-desc">Frequently asked questions about Active Directory implementation and management.</p>
+    </div>
+
+    <div class="faq-list">
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFAQ(this)">
+          <span>How many Domain Controllers should I deploy?</span>
+          <span class="faq-icon">+</span>
+        </div>
+        <div class="faq-answer">
+          <p>At minimum, deploy <strong>2 DCs per domain</strong> for redundancy. A general guideline is 1 DC per 1,000-2,000 users, plus at least 1 DC per site/location. For branch offices with fewer than 50 users and limited physical security, consider a <strong>Read-Only Domain Controller (RODC)</strong> to reduce risk.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFAQ(this)">
+          <span>Should I use a .local domain name or a routable DNS suffix?</span>
+          <span class="faq-icon">+</span>
+        </div>
+        <div class="faq-answer">
+          <p><strong>Use a routable DNS suffix</strong> (e.g., corp.contoso.com or contoso.local is no longer recommended). Microsoft recommends using a subdomain of your public domain (e.g., corp.contoso.com) or a completely separate routable domain. The .local suffix causes issues with mDNS/Bonjour, macOS clients, and hybrid Azure AD scenarios.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFAQ(this)">
+          <span>What's the difference between AD DS and Azure AD (Entra ID)?</span>
+          <span class="faq-icon">+</span>
+        </div>
+        <div class="faq-answer">
+          <p>AD DS is the traditional on-premises directory service using Kerberos/NTLM, LDAP, Group Policy, and OUs. <strong>Microsoft Entra ID</strong> is a cloud-based identity platform using OAuth 2.0, OIDC, SAML 2.0 — built for internet-scale and SaaS applications. They are complementary, not interchangeable. Most enterprises use <strong>hybrid identity</strong>: AD DS on-premises synced to Entra ID via Azure AD Connect.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFAQ(this)">
+          <span>How do I migrate from Windows Server 2012 R2 DCs to 2022?</span>
+          <span class="faq-icon">+</span>
+        </div>
+        <div class="faq-answer">
+          <p>Use the <strong>"introduce new, transfer roles, decommission old"</strong> method: (1) Add new WS2022 DCs to the existing domain, (2) Let replication sync fully, (3) Transfer FSMO roles to new DCs using <code>Move-ADDirectoryServerOperationMasterRole</code>, (4) Raise Domain/Forest Functional Level after removing all old DCs, (5) Decommission old DCs using <code>dcpromo /forceremoval</code> and clean up metadata.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFAQ(this)">
+          <span>Can I run Active Directory on virtual machines?</span>
+          <span class="faq-icon">+</span>
+        </div>
+        <div class="faq-answer">
+          <p>Yes — this is the standard approach today. Key considerations: (1) Use <strong>VM Generation ID</strong> aware hypervisors (Hyper-V, VMware 5.5+), (2) Never snapshot/restore DCs — it causes USN rollback, (3) Don't co-locate all DC VMs on a single physical host (anti-affinity rules), (4) Ensure DCs have sufficient dedicated resources and are not overprovisioned. The AD Recycle Bin is a better option than VM snapshots.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFAQ(this)">
+          <span>What are the firewall ports required for Active Directory?</span>
+          <span class="faq-icon">+</span>
+        </div>
+        <div class="faq-answer">
+          <div class="port-table-wrapper">
+            <table class="port-table">
+              <tr><th>Port</th><th>Protocol</th><th>Service</th></tr>
+              <tr><td>53</td><td>TCP/UDP</td><td>DNS</td></tr>
+              <tr><td>88</td><td>TCP/UDP</td><td>Kerberos</td></tr>
+              <tr><td>135</td><td>TCP</td><td>RPC Endpoint Mapper</td></tr>
+              <tr><td>137-138</td><td>UDP</td><td>NetBIOS (legacy)</td></tr>
+              <tr><td>389</td><td>TCP/UDP</td><td>LDAP</td></tr>
+              <tr><td>445</td><td>TCP</td><td>SMB (SYSVOL, NETLOGON)</td></tr>
+              <tr><td>636</td><td>TCP</td><td>LDAPS (LDAP over SSL)</td></tr>
+              <tr><td>3268</td><td>TCP</td><td>Global Catalog</td></tr>
+              <tr><td>3269</td><td>TCP</td><td>Global Catalog SSL</td></tr>
+              <tr><td>49152-65535</td><td>TCP</td><td>RPC Dynamic Ports</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFAQ(this)">
+          <span>What is the AGDLP naming convention?</span>
+          <span class="faq-icon">+</span>
+        </div>
+        <div class="faq-answer">
+          <p><strong>AGDLP</strong> = Accounts → Global groups → Domain Local groups → Permissions. Place user accounts in <strong>Global</strong> security groups (organized by role/department). Nest Global groups into <strong>Domain Local</strong> groups. Assign resource permissions to Domain Local groups. This allows cross-domain membership while keeping permission management simple and scalable.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="resources-section">
+      <h3 class="subsection-title">&#128279; Key Resources</h3>
+      <div class="resources-grid">
+        <div class="resource-card">
+          <div class="resource-icon">&#128196;</div>
+          <h4>Microsoft Docs</h4>
+          <p>Official AD DS documentation, deployment guides, and troubleshooting resources from Microsoft.</p>
+          <div class="resource-tag">docs.microsoft.com/windows-server/identity</div>
+        </div>
+        <div class="resource-card">
+          <div class="resource-icon">&#128275;</div>
+          <h4>Security Baselines</h4>
+          <p>Microsoft Security Compliance Toolkit — download recommended GPO baselines for Windows Server.</p>
+          <div class="resource-tag">Microsoft Security Compliance Toolkit</div>
+        </div>
+        <div class="resource-card">
+          <div class="resource-icon">&#127917;</div>
+          <h4>AD Assessment Tool</h4>
+          <p>Microsoft's Active Directory Assessment (formerly MAPA) helps identify security and health issues.</p>
+          <div class="resource-tag">Microsoft Assessment and Planning Toolkit</div>
+        </div>
+        <div class="resource-card">
+          <div class="resource-icon">&#128187;</div>
+          <h4>PowerShell AD Module</h4>
+          <p>RSAT: Active Directory Domain Services and Lightweight Directory Services Tools — essential for management.</p>
+          <div class="resource-tag">RSAT-AD-PowerShell</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="nav-brand">
+          <div class="brand-icon">&#9670;</div>
+          <span>AD<strong>Implement</strong></span>
+        </div>
+        <p>Comprehensive Active Directory implementation guide for IT professionals and system administrators.</p>
+      </div>
+      <div class="footer-links">
+        <h4>Quick Links</h4>
+        <ul>
+          <li><a href="#what-is-ad">What is AD</a></li>
+          <li><a href="#ad-types">AD Types</a></li>
+          <li><a href="#windows-editions">Windows Editions</a></li>
+          <li><a href="#implementation">Implementation</a></li>
+          <li><a href="#architecture">Architecture</a></li>
+          <li><a href="#calculator">Cost Calculator</a></li>
+          <li><a href="#best-practices">Best Practices</a></li>
+          <li><a href="#faq">FAQ</a></li>
+        </ul>
+      </div>
+      <div class="footer-topics">
+        <h4>AD Services</h4>
+        <ul>
+          <li>AD DS (Domain Services)</li>
+          <li>AD CS (Certificate Services)</li>
+          <li>AD FS (Federation Services)</li>
+          <li>AD LDS (Lightweight Directory)</li>
+          <li>AD RMS (Rights Management)</li>
+          <li>Microsoft Entra ID</li>
+          <li>Azure AD Connect</li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2024 AD Implement Guide. Built for GitHub Pages.</p>
+      <p>Information based on Windows Server 2022 & Microsoft Entra ID documentation.</p>
+    </div>
+  </div>
+</footer>
+
+<button class="back-to-top" id="backToTop" onclick="scrollToTop()">&#8679;</button>
+
+<script src="js/main.js"></script>
+</body>
+</html>
