@@ -31,9 +31,14 @@
       <li><a href="#architecture" class="nav-link">Architecture</a></li>
       <li><a href="#calculator" class="nav-link">Cost Calc</a></li>
       <li><a href="#best-practices" class="nav-link">Best Practices</a></li>
+      <li><a href="#security" class="nav-link">Security</a></li>
+      <li><a href="#powershell" class="nav-link">PS Recipes</a></li>
+      <li><a href="#alternatives" class="nav-link">Alternatives</a></li>
+      <li><a href="#templates" class="nav-link">Templates</a></li>
       <li><a href="#faq" class="nav-link">FAQ</a></li>
       <li class="nav-actions">
         <button class="nav-icon-btn" id="searchBtn" aria-label="Search (Ctrl+K)" title="Search (Ctrl+K)">&#128269;</button>
+        <button class="nav-icon-btn" id="shortcutsBtn" aria-label="Keyboard shortcuts (?)" title="Keyboard shortcuts (?)">&#9000;</button>
         <button class="nav-icon-btn" id="themeToggle" aria-label="Toggle theme" title="Toggle light/dark theme">&#9790;</button>
       </li>
     </ul>
@@ -54,6 +59,28 @@
       <span><kbd>&uarr;</kbd><kbd>&darr;</kbd> navigate</span>
       <span><kbd>&crarr;</kbd> go</span>
       <span><kbd>Ctrl</kbd>+<kbd>K</kbd> toggle</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== KEYBOARD SHORTCUTS MODAL ===== -->
+<div class="shortcuts-modal" id="shortcutsModal" aria-hidden="true">
+  <div class="search-backdrop" id="shortcutsBackdrop"></div>
+  <div class="shortcuts-dialog" role="dialog" aria-label="Keyboard shortcuts">
+    <div class="shortcuts-head">
+      <h3>Keyboard Shortcuts</h3>
+      <button class="shortcuts-close" id="shortcutsClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="shortcuts-body">
+      <div class="sc-row"><div><kbd>Ctrl</kbd>+<kbd>K</kbd> <span class="sc-or">or</span> <kbd>&#8984;</kbd>+<kbd>K</kbd></div><span>Open search palette</span></div>
+      <div class="sc-row"><div><kbd>?</kbd></div><span>Show this shortcuts list</span></div>
+      <div class="sc-row"><div><kbd>T</kbd></div><span>Toggle light / dark theme</span></div>
+      <div class="sc-row"><div><kbd>G</kbd> then <kbd>T</kbd></div><span>Scroll to top</span></div>
+      <div class="sc-row"><div><kbd>G</kbd> then <kbd>P</kbd></div><span>Jump to PowerShell recipes</span></div>
+      <div class="sc-row"><div><kbd>G</kbd> then <kbd>S</kbd></div><span>Jump to Security section</span></div>
+      <div class="sc-row"><div><kbd>G</kbd> then <kbd>F</kbd></div><span>Jump to FAQ</span></div>
+      <div class="sc-row"><div><kbd>&uarr;</kbd><kbd>&darr;</kbd> <kbd>&crarr;</kbd></div><span>Navigate search results</span></div>
+      <div class="sc-row"><div><kbd>Esc</kbd></div><span>Close any open modal</span></div>
     </div>
   </div>
 </div>
@@ -453,6 +480,135 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- ===== ENTRA DOMAIN SERVICES DEEP-DIVE ===== -->
+    <div class="entrads-section" id="entra-ds">
+      <h3 class="subsection-title">Spotlight: Microsoft Entra Domain Services</h3>
+
+      <div class="entrads-hero">
+        <div class="entrads-what">
+          <h3>What is Entra Domain Services?</h3>
+          <p><strong>Microsoft Entra Domain Services (Entra DS)</strong> is a <strong>fully managed, cloud-hosted domain service</strong> that provides classic AD DS capabilities — <strong>LDAP, Kerberos, NTLM, Group Policy, and domain join</strong> — without you having to deploy, patch, back up, or manage any domain controllers.</p>
+          <p>It runs as a managed service in Azure. Microsoft provisions two domain controllers in your chosen Azure region (and a replica set in another region if you add it), keeps them patched, monitored, and highly available.</p>
+          <p>Identities and groups are <strong>one-way synchronized from Microsoft Entra ID</strong> into the managed domain, so users keep their existing cloud credentials.</p>
+        </div>
+        <div class="entrads-what">
+          <h3>Solution &mdash; when to use it</h3>
+          <div class="entrads-use-cases">
+            <div class="entrads-use"><span class="icon">&#9989;</span><div><strong>Lift-and-shift legacy apps to Azure</strong> that require Kerberos, LDAP binds, or NTLM — e.g., SQL Server, line-of-business apps, SAP, file servers.</div></div>
+            <div class="entrads-use"><span class="icon">&#9989;</span><div><strong>Domain-join Azure VMs</strong> (Windows or Linux with SSSD) without needing a VPN back to on-prem DCs.</div></div>
+            <div class="entrads-use"><span class="icon">&#9989;</span><div><strong>Azure Virtual Desktop / Azure Files</strong> deployments that need Kerberos authentication for SMB shares.</div></div>
+            <div class="entrads-use"><span class="icon">&#9989;</span><div><strong>No on-prem footprint required</strong> — small/startup orgs that want AD DS behavior entirely in the cloud.</div></div>
+            <div class="entrads-use"><span class="icon">&#9989;</span><div><strong>Reduce operational overhead</strong> — no DC patching, no backups to manage, no FSMO worries.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <h3 class="subsection-title">AD DS On-Premises vs Entra Domain Services</h3>
+      <div class="comparison-table-wrapper">
+        <table class="comparison-table">
+          <thead>
+            <tr>
+              <th>Capability</th>
+              <th class="col-standard">AD DS (On-Prem)</th>
+              <th class="col-datacenter">Entra Domain Services (Managed)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Deployment model</td><td>You deploy &amp; manage DCs</td><td>Fully managed by Microsoft</td></tr>
+            <tr><td>Who patches DCs</td><td>You</td><td>Microsoft</td></tr>
+            <tr><td>Who backs up the directory</td><td>You (System State)</td><td>Microsoft (platform-managed, incl. point-in-time)</td></tr>
+            <tr><td>DC OS access</td><td class="check">&#9989; Full admin</td><td class="cross">&#10060; No OS access</td></tr>
+            <tr><td>Domain Admin access</td><td class="check">&#9989; Yes</td><td class="cross">&#10060; AAD DC Administrators group (limited)</td></tr>
+            <tr><td>Schema extensions</td><td class="check">&#9989; Yes</td><td class="cross">&#10060; Not supported</td></tr>
+            <tr><td>LDAP read / bind</td><td class="check">&#9989;</td><td class="check">&#9989;</td></tr>
+            <tr><td>LDAP write</td><td class="check">&#9989;</td><td class="cross">&#10060; Read-only via LDAP</td></tr>
+            <tr><td>Kerberos / NTLM</td><td class="check">&#9989;</td><td class="check">&#9989;</td></tr>
+            <tr><td>Group Policy (custom GPOs)</td><td class="check">&#9989; Full</td><td class="check">Limited (built-in + simple custom)</td></tr>
+            <tr><td>Trusts to on-prem AD</td><td class="check">&#9989; Any</td><td class="check">One-way outbound forest trust (resource forest only)</td></tr>
+            <tr><td>Sync source</td><td>&mdash;</td><td>Entra ID (one-way)</td></tr>
+            <tr><td>Password hash availability</td><td>Instant</td><td>Legacy NTLM hash requires PHS + legacy auth enabled</td></tr>
+            <tr><td>Geo-redundancy</td><td>You design it</td><td>Optional replica set (extra region)</td></tr>
+            <tr><td>Cost model</td><td>Windows + CALs + HW</td><td>Per-hour instance (SKU Standard/Enterprise/Premium)</td></tr>
+            <tr><td>Scale</td><td>Unlimited</td><td>Up to ~100k objects (Standard), more on higher SKUs</td></tr>
+            <tr><td>Best for</td><td>Full control, custom apps, extensive GPO</td><td>Lift-and-shift, reducing ops burden, cloud-only</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="subsection-title">Implementation &mdash; Cloud-Only</h3>
+      <div class="impl-mode">
+        <h3>&#9729; Cloud-only Entra DS</h3>
+        <p style="color:var(--text-muted);">Users live in <strong>Microsoft Entra ID</strong> only (no on-prem AD). Entra ID is the source of truth; Entra DS is the managed classic-protocol domain.</p>
+        <div class="impl-steps">
+          <div class="impl-step"><strong>Prepare the tenant</strong>Have a Microsoft Entra ID tenant with user accounts. If users originate as cloud-only, they must reset their password <em>after</em> Entra DS is enabled so the NTLM/Kerberos hashes are generated.</div>
+          <div class="impl-step"><strong>Create an Azure VNet &amp; subnet</strong>Dedicated VNet with a subnet (e.g., <code>10.0.1.0/24</code>) that will host the managed domain controllers. Avoid overlapping ranges.</div>
+          <div class="impl-step"><strong>Provision Entra Domain Services</strong>Azure Portal &rarr; <em>Create Microsoft Entra Domain Services</em>. Choose: managed domain DNS name (e.g., <code>contoso.onmicrosoft.com</code> or a custom <code>aaddscontoso.com</code>), SKU, region, VNet/subnet. Provisioning takes ~30&ndash;60 min.</div>
+          <div class="impl-step"><strong>Update VNet DNS</strong>Point VNet DNS settings to the two IPs assigned to the managed domain. All VMs in that VNet now use the managed domain for name resolution.</div>
+          <div class="impl-step"><strong>Enable password sync</strong>Users must change their password at least once after enablement for Kerberos/NTLM credentials to be generated and synced into Entra DS.</div>
+          <div class="impl-step"><strong>Domain-join workloads</strong>Join Azure VMs, App Service Environments, Azure Files, or AVD host pools using the managed domain DNS name. Standard <code>djoin</code> / Windows &quot;Join a domain&quot; works.</div>
+          <div class="impl-step"><strong>Optional: Secure LDAP</strong>Enable LDAPS using a certificate from an internal CA or public CA. Required for most line-of-business apps that need secure LDAP binds.</div>
+          <div class="impl-step"><strong>Optional: Add replica set</strong>For HA / DR across regions, add an Entra DS replica set in a second Azure region.</div>
+        </div>
+
+        <div class="code-block">
+          <div class="code-header"><span>Azure CLI &mdash; Provision cloud-only Entra DS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre><code><span class="comment"># Login and set subscription</span>
+az login
+az account set --subscription &quot;&lt;SubId&gt;&quot;
+
+<span class="comment"># Create resource group + VNet + subnet</span>
+az group create --name rg-eds --location southeastasia
+az network vnet create --resource-group rg-eds \
+  --name vnet-eds --address-prefix 10.0.0.0/16 \
+  --subnet-name snet-eds --subnet-prefix 10.0.1.0/24
+
+<span class="comment"># Register the resource provider (first-time only)</span>
+az provider register -n Microsoft.AAD
+
+<span class="comment"># Create the managed domain (the portal-equivalent step).
+# The 'az ad ds' commands require the aad-ds CLI extension.</span>
+az extension add --name aad-ds
+
+az ad ds create --resource-group rg-eds \
+  --name aaddscontoso.com --location southeastasia \
+  --sku Standard \
+  --replica-sets &apos;[{&quot;location&quot;:&quot;southeastasia&quot;,&quot;subnetId&quot;:&quot;/subscriptions/&lt;SubId&gt;/resourceGroups/rg-eds/providers/Microsoft.Network/virtualNetworks/vnet-eds/subnets/snet-eds&quot;}]&apos;</code></pre>
+        </div>
+      </div>
+
+      <h3 class="subsection-title">Implementation &mdash; Hybrid</h3>
+      <div class="impl-mode hybrid-mode">
+        <h3>&#128256; Hybrid: on-prem AD DS + Entra ID + Entra DS</h3>
+        <p style="color:var(--text-muted);">On-prem AD DS is the source of truth. <strong>Microsoft Entra Connect</strong> syncs users/groups and <strong>password hashes</strong> to Entra ID, which in turn feeds Entra DS.</p>
+        <div class="impl-steps">
+          <div class="impl-step"><strong>Confirm Entra Connect sync method</strong>Use <strong>Password Hash Sync (PHS)</strong>. Pass-Through Auth alone is <em>not</em> sufficient — Entra DS needs the legacy hash to generate Kerberos/NTLM credentials.</div>
+          <div class="impl-step"><strong>Verify directory sync</strong>Confirm users and groups appear in Entra ID with correct UPN and SIDs. Resolve any sync errors before provisioning Entra DS.</div>
+          <div class="impl-step"><strong>Decide namespace strategy</strong>Pick an Entra DS DNS name distinct from your on-prem AD (e.g., on-prem is <code>corp.contoso.com</code>, Entra DS is <code>aadds.contoso.com</code>) — avoids namespace collision and lets you build an outbound forest trust from on-prem AD if needed.</div>
+          <div class="impl-step"><strong>Provision Entra DS in a dedicated VNet</strong>Same as cloud-only. Peer this VNet with your hub / on-prem connectivity (ExpressRoute or VPN) so hybrid clients can reach it.</div>
+          <div class="impl-step"><strong>Password reset wave</strong>On-prem users who existed <em>before</em> PHS was enabled must change their password once for NTLM/Kerberos hashes to flow through to Entra DS.</div>
+          <div class="impl-step"><strong>Optional one-way trust from on-prem</strong>Create a <strong>one-way forest trust</strong> from on-prem AD DS &rarr; Entra DS. On-prem users can access resources joined to Entra DS without existing in it. Entra DS cannot write back to on-prem.</div>
+          <div class="impl-step"><strong>Route workloads appropriately</strong>Lift-and-shift apps in Azure join <code>aadds.contoso.com</code>. On-prem workloads keep using <code>corp.contoso.com</code>. Both sets of users authenticate seamlessly.</div>
+          <div class="impl-step"><strong>Monitor &amp; cost</strong>Entra DS billing is per-hour per instance. Monitor via Azure Monitor + Entra DS health blade. Entra Connect and on-prem AD continue to be your responsibility.</div>
+        </div>
+      </div>
+
+      <div class="info-box">
+        <div class="info-icon">&#128161;</div>
+        <div class="info-content">
+          <h4>Gotchas to remember</h4>
+          <ul>
+            <li><strong>No schema extensions</strong> — apps that require custom AD schema (older Exchange, some LoB apps) will not run on Entra DS.</li>
+            <li><strong>LDAP is read-only</strong> — apps that <em>write</em> to the directory via LDAP won&apos;t work.</li>
+            <li><strong>Password reset required</strong> for existing cloud-only users and on-prem users synced before PHS enablement.</li>
+            <li><strong>No Enterprise/Domain Admin</strong> — you get <em>AAD DC Administrators</em>, a scoped admin group. You cannot RDP into the managed DCs.</li>
+            <li><strong>Trusts are one-way outbound from on-prem AD to Entra DS</strong>. Entra DS cannot host a child domain of on-prem AD.</li>
+            <li><strong>Pricing</strong>: Entra DS Standard starts around $0.10/hr (~$73/mo). Enterprise and Premium SKUs cost more but support more objects and features.</li>
+          </ul>
+        </div>
+      </div>
+
     </div>
   </div>
 </section>
@@ -1484,11 +1640,407 @@ repadmin /showrepl</code></pre>
   </div>
 </section>
 
+<!-- ===== SECURITY: ATTACKS & DEFENSE ===== -->
+<section class="section section-alt" id="security">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-badge">Chapter 08</div>
+      <h2 class="section-title">AD Attacks &amp; Defense</h2>
+      <p class="section-desc">Common attack techniques against Active Directory — how they work, how to detect them, and how to defend.</p>
+    </div>
+
+    <div class="attack-grid">
+
+      <article class="attack-card" id="attack-kerberoasting">
+        <header class="attack-head">
+          <div class="attack-badge badge-cred">Credential Theft</div>
+          <h3>Kerberoasting</h3>
+          <div class="attack-meta">
+            <span class="severity sev-high">High Severity</span>
+            <span class="technique">MITRE T1558.003</span>
+          </div>
+        </header>
+        <div class="attack-body">
+          <div class="attack-col">
+            <h4>&#128680; How it works</h4>
+            <ol>
+              <li>Attacker with any valid domain user requests a Kerberos service ticket (TGS) for an account with an SPN (<code>Request-SPNTicket</code>, Rubeus).</li>
+              <li>The TGS is encrypted with the service account&apos;s NTLM/RC4 password hash.</li>
+              <li>Attacker extracts the ticket and cracks it offline with hashcat (mode 13100) — weak passwords fall in minutes.</li>
+              <li>Service account credentials are now compromised, often with high privileges.</li>
+            </ol>
+          </div>
+          <div class="attack-col">
+            <h4>&#128269; Detection</h4>
+            <ul>
+              <li>Event ID <code>4769</code> with <strong>Encryption Type 0x17 (RC4)</strong> — legitimate modern traffic uses AES.</li>
+              <li>Unusual volume of TGS requests from a single account for many SPNs.</li>
+              <li>Microsoft Defender for Identity: &quot;Suspected Kerberoasting attack&quot; alert.</li>
+            </ul>
+            <h4>&#128737;&#65039; Hardening</h4>
+            <ul>
+              <li>Use <strong>group Managed Service Accounts (gMSA)</strong> or <strong>dMSA</strong> (WS 2025) — passwords are machine-managed and 120 chars.</li>
+              <li>Force AES-only tickets: <code>msDS-SupportedEncryptionTypes = 0x18</code>.</li>
+              <li>Minimum 25-char password on service accounts that must stay as traditional users.</li>
+              <li>Add <strong>Protected Users</strong> group membership — blocks RC4 and NTLM.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="code-block">
+          <div class="code-header">
+            <span>PowerShell &mdash; Find SPN-enabled accounts (hunt your own)</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre><code>Get-ADUser -Filter {ServicePrincipalName -like &quot;*&quot;} `
+  -Properties ServicePrincipalName, PasswordLastSet, msDS-SupportedEncryptionTypes |
+  Select-Object SamAccountName, ServicePrincipalName, PasswordLastSet, msDS-SupportedEncryptionTypes</code></pre>
+        </div>
+      </article>
+
+      <article class="attack-card" id="attack-golden-ticket">
+        <header class="attack-head">
+          <div class="attack-badge badge-priv">Privilege Escalation</div>
+          <h3>Golden Ticket</h3>
+          <div class="attack-meta">
+            <span class="severity sev-critical">Critical</span>
+            <span class="technique">MITRE T1558.001</span>
+          </div>
+        </header>
+        <div class="attack-body">
+          <div class="attack-col">
+            <h4>&#128680; How it works</h4>
+            <ol>
+              <li>Attacker compromises the <strong>krbtgt</strong> account hash (via DCSync, DC compromise, old backup).</li>
+              <li>With the krbtgt hash + domain SID, attacker forges a TGT for <em>any</em> user, including Domain Admins.</li>
+              <li>Forged TGT is valid for up to <strong>10 years</strong> by default — persistent domain-wide access.</li>
+              <li>Bypasses MFA, password changes, and account disables — only krbtgt rotation invalidates it.</li>
+            </ol>
+          </div>
+          <div class="attack-col">
+            <h4>&#128269; Detection</h4>
+            <ul>
+              <li>Event ID <code>4769</code> for accounts that never requested a TGS before.</li>
+              <li>TGT lifetime longer than policy (default max 10h).</li>
+              <li>Event ID <code>4624</code> logons without a preceding <code>4768</code> (AS-REQ).</li>
+              <li>Defender for Identity: &quot;Suspected Golden Ticket usage&quot; alert.</li>
+            </ul>
+            <h4>&#128737;&#65039; Hardening</h4>
+            <ul>
+              <li><strong>Rotate krbtgt password twice</strong> (with 10h gap) after any Tier-0 incident — mandatory annually.</li>
+              <li>Protect DCs: no browsing, no email, no admin logon from workstations (PAW model).</li>
+              <li>Tier the admin model (Tier 0/1/2). Never cache DA credentials on Tier 2 hosts.</li>
+              <li>Enable <strong>Credential Guard</strong> on Tier 0.</li>
+            </ul>
+          </div>
+        </div>
+      </article>
+
+      <article class="attack-card" id="attack-dcsync">
+        <header class="attack-head">
+          <div class="attack-badge badge-cred">Credential Theft</div>
+          <h3>DCSync</h3>
+          <div class="attack-meta">
+            <span class="severity sev-critical">Critical</span>
+            <span class="technique">MITRE T1003.006</span>
+          </div>
+        </header>
+        <div class="attack-body">
+          <div class="attack-col">
+            <h4>&#128680; How it works</h4>
+            <ol>
+              <li>Attacker abuses the <code>DS-Replication-Get-Changes</code> and <code>DS-Replication-Get-Changes-All</code> rights.</li>
+              <li>Impersonates a DC and requests replication of password hashes via the Directory Replication Service Remote Protocol (MS-DRSR).</li>
+              <li>Dumps all hashes including <strong>krbtgt</strong> — feeds directly into Golden Ticket attacks.</li>
+              <li>Does <em>not</em> require code execution on a DC.</li>
+            </ol>
+          </div>
+          <div class="attack-col">
+            <h4>&#128269; Detection</h4>
+            <ul>
+              <li>Event ID <code>4662</code> on DCs with GUIDs <code>1131f6aa-...</code> (Get-Changes) and <code>1131f6ad-...</code> (Get-Changes-All) from non-DC principals.</li>
+              <li>SACL on the domain object; filter on principal != DC computer account.</li>
+              <li>Defender for Identity: &quot;Suspected DCSync attack (replication of directory services)&quot; alert.</li>
+            </ul>
+            <h4>&#128737;&#65039; Hardening</h4>
+            <ul>
+              <li>Audit who holds the DS-Replication-* rights — should only be Domain Controllers, Enterprise Domain Controllers, Administrators.</li>
+              <li>Regularly review delegations on the domain root.</li>
+              <li>Protect admin accounts with MFA and Privileged Access Workstations.</li>
+            </ul>
+          </div>
+        </div>
+      </article>
+
+      <article class="attack-card" id="attack-pth">
+        <header class="attack-head">
+          <div class="attack-badge badge-lateral">Lateral Movement</div>
+          <h3>Pass-the-Hash / Pass-the-Ticket</h3>
+          <div class="attack-meta">
+            <span class="severity sev-high">High Severity</span>
+            <span class="technique">MITRE T1550.002 / T1550.003</span>
+          </div>
+        </header>
+        <div class="attack-body">
+          <div class="attack-col">
+            <h4>&#128680; How it works</h4>
+            <ol>
+              <li>Attacker dumps NTLM hashes or Kerberos tickets from LSASS (mimikatz, lsassy).</li>
+              <li>Reuses the hash/ticket to authenticate as the user — no plaintext password needed.</li>
+              <li>Moves laterally between hosts sharing local admin passwords or cached credentials.</li>
+            </ol>
+          </div>
+          <div class="attack-col">
+            <h4>&#128269; Detection</h4>
+            <ul>
+              <li>Event ID <code>4624</code> Logon Type 3 (network) + Logon Process <code>NtLmSsp</code> on multiple hosts quickly.</li>
+              <li>Event ID <code>4648</code> explicit-credential logons from unusual sources.</li>
+              <li>Defender for Identity: &quot;Suspected Overpass-the-Hash attack&quot;.</li>
+            </ul>
+            <h4>&#128737;&#65039; Hardening</h4>
+            <ul>
+              <li>Deploy <strong>Windows LAPS</strong> — unique local admin password per machine.</li>
+              <li>Enable <strong>Credential Guard</strong> (Windows 10/11 + Server 2016+).</li>
+              <li>Disable <strong>WDigest</strong> cleartext caching.</li>
+              <li>Disable <strong>NTLM</strong> where possible; audit with Event ID <code>8004</code>.</li>
+              <li>Tier 0 admins go in <strong>Protected Users</strong> group.</li>
+            </ul>
+          </div>
+        </div>
+      </article>
+
+      <article class="attack-card" id="attack-asrep">
+        <header class="attack-head">
+          <div class="attack-badge badge-cred">Credential Theft</div>
+          <h3>AS-REP Roasting</h3>
+          <div class="attack-meta">
+            <span class="severity sev-medium">Medium Severity</span>
+            <span class="technique">MITRE T1558.004</span>
+          </div>
+        </header>
+        <div class="attack-body">
+          <div class="attack-col">
+            <h4>&#128680; How it works</h4>
+            <ol>
+              <li>Attacker targets accounts with <strong>&quot;Do not require Kerberos preauthentication&quot;</strong> enabled.</li>
+              <li>Sends an AS-REQ without preauth — DC returns an AS-REP encrypted with the user&apos;s password hash.</li>
+              <li>Attacker cracks the AS-REP offline (hashcat mode 18200). Succeeds without any prior credentials.</li>
+            </ol>
+          </div>
+          <div class="attack-col">
+            <h4>&#128269; Detection</h4>
+            <ul>
+              <li>Event ID <code>4768</code> with pre-auth type = <strong>0</strong>.</li>
+              <li>Volume spike of unauthenticated AS-REQs.</li>
+              <li>Hunt: find accounts with <code>DONT_REQ_PREAUTH</code> flag set.</li>
+            </ul>
+            <h4>&#128737;&#65039; Hardening</h4>
+            <ul>
+              <li>Clear the <code>DONT_REQ_PREAUTH</code> flag on all accounts (usually leftover from legacy apps).</li>
+              <li>If required, enforce 25+ char passwords on those accounts.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="code-block">
+          <div class="code-header">
+            <span>PowerShell &mdash; Find accounts without Kerberos preauth</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre><code>Get-ADUser -Filter 'useraccountcontrol -band 4194304' `
+  -Properties SamAccountName, PasswordLastSet, Enabled |
+  Where-Object Enabled -eq $true</code></pre>
+        </div>
+      </article>
+
+    </div>
+
+    <div class="defense-stack">
+      <h3 class="subsection-title">Defense-in-Depth Stack</h3>
+      <div class="defense-tiers">
+        <div class="defense-tier t-prevent"><strong>Prevent</strong><ul><li>Tiered admin model + PAWs</li><li>Protected Users group</li><li>Credential Guard + LAPS</li><li>Disable NTLMv1, WDigest</li><li>LDAP channel binding</li></ul></div>
+        <div class="defense-tier t-detect"><strong>Detect</strong><ul><li>Microsoft Defender for Identity</li><li>SIEM: Sentinel, Splunk, Elastic</li><li>Honey accounts + HoneyHashes</li><li>SACL on sensitive AD objects</li><li>Audit policy: Kerberos, Account Management</li></ul></div>
+        <div class="defense-tier t-respond"><strong>Respond</strong><ul><li>krbtgt rotation playbook (x2)</li><li>Isolate compromised DCs</li><li>Reset Tier 0 credentials</li><li>Authoritative restore procedure</li><li>Forensic triage: KAPE, Velociraptor</li></ul></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== POWERSHELL RECIPE LIBRARY ===== -->
+<section class="section" id="powershell">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-badge">Chapter 09</div>
+      <h2 class="section-title">PowerShell Recipe Library</h2>
+      <p class="section-desc">Curated, copy-paste scripts for day-to-day AD administration. Filter by tag; copy to clipboard or download as <code>.ps1</code>.</p>
+    </div>
+
+    <div class="recipe-controls">
+      <input type="text" id="recipeSearch" placeholder="&#128269; Search recipes (e.g., fsmo, backup, user)..." autocomplete="off" />
+      <div class="recipe-tags" id="recipeTags">
+        <button class="recipe-tag active" data-tag="all">All</button>
+        <button class="recipe-tag" data-tag="users">Users</button>
+        <button class="recipe-tag" data-tag="groups">Groups</button>
+        <button class="recipe-tag" data-tag="gpo">GPO</button>
+        <button class="recipe-tag" data-tag="fsmo">FSMO</button>
+        <button class="recipe-tag" data-tag="replication">Replication</button>
+        <button class="recipe-tag" data-tag="security">Security</button>
+        <button class="recipe-tag" data-tag="health">Health</button>
+      </div>
+    </div>
+
+    <div class="recipe-list" id="recipeList">
+      <!-- Recipes injected by JS -->
+    </div>
+  </div>
+</section>
+
+<!-- ===== DIRECTORY ALTERNATIVES ===== -->
+<section class="section section-alt" id="alternatives">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-badge">Chapter 10</div>
+      <h2 class="section-title">Directory Service Alternatives</h2>
+      <p class="section-desc">AD DS isn&apos;t the only directory game in town. Here&apos;s how it compares to Entra ID, Entra Domain Services, Samba AD, FreeIPA, and JumpCloud.</p>
+    </div>
+
+    <div class="comparison-table-wrapper alt-table-wrapper">
+      <table class="comparison-table alt-table">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th>AD DS</th>
+            <th>Entra ID</th>
+            <th>Entra DS</th>
+            <th>Samba AD</th>
+            <th>FreeIPA</th>
+            <th>JumpCloud</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Deployment</td><td>On-prem</td><td>SaaS</td><td>Managed cloud</td><td>On-prem</td><td>On-prem</td><td>SaaS</td></tr>
+          <tr><td>Primary Protocol</td><td>LDAP/Kerberos</td><td>OAuth/OIDC/SAML</td><td>LDAP/Kerberos</td><td>LDAP/Kerberos</td><td>LDAP/Kerberos</td><td>LDAP/SAML/RADIUS</td></tr>
+          <tr><td>Group Policy</td><td class="check">&#9989;</td><td class="cross">&#10060;</td><td class="check">Partial</td><td class="check">&#9989;</td><td class="cross">&#10060;</td><td class="check">Policies</td></tr>
+          <tr><td>Cross-platform clients</td><td class="check">Partial</td><td class="check">&#9989;</td><td class="check">Partial</td><td class="check">&#9989;</td><td class="check">&#9989; (Linux-first)</td><td class="check">&#9989;</td></tr>
+          <tr><td>MFA built-in</td><td class="cross">&#10060;</td><td class="check">&#9989;</td><td class="cross">&#10060;</td><td class="cross">&#9989; (add-on)</td><td class="check">&#9989;</td><td class="check">&#9989;</td></tr>
+          <tr><td>Conditional Access</td><td class="cross">&#10060;</td><td class="check">&#9989;</td><td class="cross">&#10060;</td><td class="cross">&#10060;</td><td class="cross">&#10060;</td><td class="check">&#9989;</td></tr>
+          <tr><td>Open Source</td><td class="cross">&#10060;</td><td class="cross">&#10060;</td><td class="cross">&#10060;</td><td class="check">&#9989;</td><td class="check">&#9989;</td><td class="cross">&#10060;</td></tr>
+          <tr><td>Monthly cost / user</td><td>License only</td><td>$0&ndash;$9</td><td>$0.10/hr instance</td><td>Free</td><td>Free</td><td>$7&ndash;$18</td></tr>
+          <tr><td>Best for</td><td>Windows shops</td><td>Cloud SaaS</td><td>Lift-and-shift</td><td>Linux + Windows mix</td><td>Linux-first</td><td>SMB, no infra</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="alt-cards">
+      <div class="alt-card"><h4>&#127968; AD DS</h4><p>The on-prem gold standard. Deep Windows integration, extensive tooling, mature. Price: Windows Server + CAL.</p><div class="alt-pros"><strong>Pick when:</strong> Windows-centric, need full GPO, heavy investment in Microsoft ecosystem.</div></div>
+      <div class="alt-card"><h4>&#9729; Microsoft Entra ID</h4><p>Cloud-native identity for SaaS/web. Not a drop-in for AD DS but the natural pair via Entra Connect.</p><div class="alt-pros"><strong>Pick when:</strong> M365 / cloud-first, modern auth (OIDC/SAML), Conditional Access, no domain-joined machines.</div></div>
+      <div class="alt-card"><h4>&#128230; Entra Domain Services</h4><p>Managed AD DS in Azure. LDAP + Kerberos without running DCs. Read-only to Entra ID.</p><div class="alt-pros"><strong>Pick when:</strong> Lifting legacy LDAP/Kerberos apps to Azure without rebuilding auth code.</div></div>
+      <div class="alt-card"><h4>&#128187; Samba AD</h4><p>Open-source AD DS compatible replacement. Runs on Linux/BSD. Kerberos + LDAP + partial GPO.</p><div class="alt-pros"><strong>Pick when:</strong> Mixed Windows/Linux, no Microsoft licensing budget, Linux admin skills.</div></div>
+      <div class="alt-card"><h4>&#128039; FreeIPA</h4><p>Red Hat&apos;s integrated identity suite (389DS + Kerberos + Dogtag CA). Linux-native, host-based ACLs.</p><div class="alt-pros"><strong>Pick when:</strong> Linux-heavy, need certificate authority + sudo rules + host-based access policies.</div></div>
+      <div class="alt-card"><h4>&#9889; JumpCloud</h4><p>Cloud directory-as-a-service. Device management + SSO + RADIUS + LDAP. No on-prem footprint.</p><div class="alt-pros"><strong>Pick when:</strong> SMB without IT infra, all-remote workforce, cross-OS fleet, want a single pane.</div></div>
+    </div>
+
+    <div class="decision-tree">
+      <h3 class="subsection-title">Decision Tree</h3>
+      <div class="dt-flow">
+        <div class="dt-node dt-start">Need a directory service?</div>
+        <div class="dt-row">
+          <div class="dt-branch">
+            <div class="dt-label">Cloud-first, SaaS apps only?</div>
+            <div class="dt-node dt-pick">&rarr; <strong>Entra ID</strong></div>
+          </div>
+          <div class="dt-branch">
+            <div class="dt-label">Windows-centric, need GPO on-prem?</div>
+            <div class="dt-node dt-pick">&rarr; <strong>AD DS</strong> (+ Entra Connect for hybrid)</div>
+          </div>
+          <div class="dt-branch">
+            <div class="dt-label">Linux-heavy, want open source?</div>
+            <div class="dt-node dt-pick">&rarr; <strong>FreeIPA</strong> or <strong>Samba AD</strong></div>
+          </div>
+          <div class="dt-branch">
+            <div class="dt-label">SMB, no servers, cross-OS?</div>
+            <div class="dt-node dt-pick">&rarr; <strong>JumpCloud</strong></div>
+          </div>
+          <div class="dt-branch">
+            <div class="dt-label">Legacy AD app in Azure, no DCs?</div>
+            <div class="dt-node dt-pick">&rarr; <strong>Entra Domain Services</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== EXCEL TEMPLATE LIBRARY ===== -->
+<section class="section" id="templates">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-badge">Chapter 11</div>
+      <h2 class="section-title">Excel Template Library</h2>
+      <p class="section-desc">Download ready-to-use Excel worksheets for AD implementation, upgrades, assessments, questionnaires, security and best-practice audits. Files open as a formatted <code>.xls</code> workbook.</p>
+    </div>
+
+    <div class="templates-grid">
+
+      <article class="template-card">
+        <div class="template-icon">&#128214;</div>
+        <h4>New AD Implementation Checklist</h4>
+        <p>5-phase deployment plan: Planning, Infrastructure Prep, AD DS Deployment, Post-Deployment, Testing. ~40 tasks with owner / date / status columns.</p>
+        <div class="template-meta">5 phases &middot; 40+ rows</div>
+        <button class="btn btn-primary" onclick="downloadTemplate('new-ad-implementation')">&#128229; Download .xls</button>
+      </article>
+
+      <article class="template-card">
+        <div class="template-icon">&#128257;</div>
+        <h4>AD Upgrade Checklist</h4>
+        <p>Pre-upgrade assessment, prerequisites, migration (introduce &rarr; transfer &rarr; decommission), functional-level raise, and validation.</p>
+        <div class="template-meta">5 phases &middot; 35+ rows</div>
+        <button class="btn btn-primary" onclick="downloadTemplate('ad-upgrade')">&#128229; Download .xls</button>
+      </article>
+
+      <article class="template-card">
+        <div class="template-icon">&#128203;</div>
+        <h4>Assessment Questionnaire</h4>
+        <p>Current-state inventory: scale, DC infrastructure, security posture, operations, hybrid and compliance. Use before upgrades or audits.</p>
+        <div class="template-meta">6 categories &middot; 35+ questions</div>
+        <button class="btn btn-primary" onclick="downloadTemplate('assessment-questionnaire')">&#128229; Download .xls</button>
+      </article>
+
+      <article class="template-card">
+        <div class="template-icon">&#128274;</div>
+        <h4>Security Hardening Checklist</h4>
+        <p>Controls across Identity, Auth, Service Accounts, Password Policy, Monitoring, DC Hardening and Backup. Priority-tagged.</p>
+        <div class="template-meta">7 sections &middot; 40+ controls</div>
+        <button class="btn btn-primary" onclick="downloadTemplate('security-checklist')">&#128229; Download .xls</button>
+      </article>
+
+      <article class="template-card">
+        <div class="template-icon">&#127942;</div>
+        <h4>Best Practices Audit</h4>
+        <p>Compare current state vs recommended across Architecture, OU Design, Groups, GPO, Replication, Time, Operations, Hybrid.</p>
+        <div class="template-meta">8 areas &middot; 35+ items</div>
+        <button class="btn btn-primary" onclick="downloadTemplate('best-practices')">&#128229; Download .xls</button>
+      </article>
+
+      <article class="template-card template-bundle">
+        <div class="template-icon">&#128230;</div>
+        <h4>Download All Templates</h4>
+        <p>Grab all 5 templates in one click. Each file downloads as a separate <code>.xls</code> workbook, ~400&nbsp;ms apart to keep the browser happy.</p>
+        <div class="template-meta">5 files &middot; bundle</div>
+        <button class="btn btn-primary" onclick="downloadAllTemplates()">&#128230; Download Bundle</button>
+      </article>
+
+    </div>
+
+    <div class="template-note">
+      <strong>&#128161; Tip:</strong> Files are generated client-side as Excel-compatible HTML. For true <code>.xlsx</code>, open the file in Excel and use <em>File &rarr; Save As &rarr; Excel Workbook (.xlsx)</em>. Templates have no macros and are safe to share.
+    </div>
+  </div>
+</section>
+
 <!-- ===== FAQ ===== -->
 <section class="section section-alt" id="faq">
   <div class="container">
     <div class="section-header">
-      <div class="section-badge">Chapter 08</div>
+      <div class="section-badge">Chapter 12</div>
       <h2 class="section-title">FAQ & Resources</h2>
       <p class="section-desc">Frequently asked questions about Active Directory implementation and management.</p>
     </div>
@@ -1672,6 +2224,10 @@ repadmin /showrepl</code></pre>
           <li><a href="#architecture">Architecture</a></li>
           <li><a href="#calculator">Cost Calculator</a></li>
           <li><a href="#best-practices">Best Practices</a></li>
+          <li><a href="#security">Attacks &amp; Defense</a></li>
+          <li><a href="#powershell">PowerShell Recipes</a></li>
+          <li><a href="#alternatives">Alternatives</a></li>
+          <li><a href="#templates">Excel Templates</a></li>
           <li><a href="#faq">FAQ</a></li>
         </ul>
       </div>

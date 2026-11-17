@@ -356,6 +356,20 @@ const SEARCH_INDEX = [
   { title: 'dMSA Service Accounts', hash: '#faq', keywords: 'dmsa delegated managed service account kerberoasting gmsa service account' },
   { title: 'Hybrid Identity', hash: '#ad-types', keywords: 'hybrid identity entra connect azure ad connect sync password hash sync pass-through federation' },
   { title: 'Security Checklist', hash: '#best-practices', keywords: 'checklist security recycle bin fine grained password credential guard wdigest smb signing' },
+  // New chapters
+  { title: 'AD Attacks & Defense', hash: '#security', keywords: 'security attack defense kerberoasting golden ticket silver dcsync pass the hash pth asrep mitre t1558 t1003' },
+  { title: 'Kerberoasting Attack', hash: '#attack-kerberoasting', keywords: 'kerberoasting spn tgs rc4 service account hashcat 13100 mitre t1558.003' },
+  { title: 'Golden Ticket Attack', hash: '#attack-golden-ticket', keywords: 'golden ticket krbtgt forged tgt domain admin persistence mitre t1558.001' },
+  { title: 'DCSync Attack', hash: '#attack-dcsync', keywords: 'dcsync replication get changes drsr password dump krbtgt mitre t1003.006' },
+  { title: 'Pass-the-Hash', hash: '#attack-pth', keywords: 'pass the hash ptt mimikatz lsass ntlm lateral movement mitre t1550' },
+  { title: 'AS-REP Roasting', hash: '#attack-asrep', keywords: 'as-rep roasting preauth kerberos hashcat 18200 mitre t1558.004' },
+  { title: 'PowerShell Recipe Library', hash: '#powershell', keywords: 'powershell recipes scripts ps1 download bulk users gpo backup fsmo replication health laps' },
+  { title: 'Directory Alternatives', hash: '#alternatives', keywords: 'alternatives samba ad freeipa jumpcloud entra domain services comparison decision tree open source' },
+  { title: 'Template Downloads', hash: '#templates', keywords: 'templates download excel xlsx checklist assessment questionnaire implementation upgrade security best practices' },
+  { title: 'Entra Domain Services Deep-Dive', hash: '#entra-ds', keywords: 'entra domain services aadds managed cloud ldap kerberos ntlm azure lift shift what is comparison implementation cloud-only hybrid' },
+  { title: 'Entra DS vs AD DS comparison', hash: '#entra-ds', keywords: 'entra ds vs ad ds comparison managed on-prem schema ldap write domain admin trust' },
+  { title: 'Entra DS cloud-only implementation', hash: '#entra-ds', keywords: 'entra ds cloud only implementation provision azure vnet dns password sync az cli ad ds' },
+  { title: 'Entra DS hybrid implementation', hash: '#entra-ds', keywords: 'entra ds hybrid entra connect password hash sync phs forest trust vpn expressroute' },
 ];
 
 function openSearch() {
@@ -450,6 +464,710 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+// ===== TOAST =====
+let toastEl;
+function toast(msg, ms = 2200) {
+  if (!toastEl) {
+    toastEl = document.createElement('div');
+    toastEl.className = 'toast';
+    document.body.appendChild(toastEl);
+  }
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => toastEl.classList.remove('show'), ms);
+}
+
+// ===== POWERSHELL RECIPE LIBRARY =====
+const RECIPES = [
+  {
+    id: 'bulk-users',
+    title: 'Bulk Create Users from CSV',
+    desc: 'Import users from a CSV with FirstName, LastName, Username, Password columns.',
+    tags: ['users'],
+    code: `# Columns: FirstName,LastName,Username,Password
+Import-Csv "C:\\users.csv" | ForEach-Object {
+  New-ADUser \`
+    -Name "$($_.FirstName) $($_.LastName)" \`
+    -GivenName $_.FirstName -Surname $_.LastName \`
+    -SamAccountName $_.Username \`
+    -UserPrincipalName "$($_.Username)@contoso.com" \`
+    -Path "OU=Users,OU=Corp,DC=contoso,DC=com" \`
+    -AccountPassword (ConvertTo-SecureString $_.Password -AsPlainText -Force) \`
+    -Enabled $true -ChangePasswordAtLogon $true
+}`
+  },
+  {
+    id: 'disable-stale',
+    title: 'Disable Stale User Accounts (90 days)',
+    desc: 'Find and disable user accounts that have not logged on in 90 days.',
+    tags: ['users', 'security'],
+    code: `$cutoff = (Get-Date).AddDays(-90)
+Search-ADAccount -AccountInactive -TimeSpan 90.00:00:00 -UsersOnly |
+  Where-Object {$_.Enabled -eq $true} |
+  ForEach-Object {
+    Disable-ADAccount -Identity $_.SamAccountName
+    Set-ADUser -Identity $_.SamAccountName -Description "Disabled - inactive since $cutoff"
+    Write-Host "Disabled: $($_.SamAccountName)"
+  }`
+  },
+  {
+    id: 'reset-password',
+    title: 'Reset Password & Force Change at Logon',
+    desc: 'Reset a user password and require change at next logon.',
+    tags: ['users'],
+    code: `$user = Read-Host "SamAccountName"
+$newPw = Read-Host "New password" -AsSecureString
+Set-ADAccountPassword -Identity $user -NewPassword $newPw -Reset
+Set-ADUser -Identity $user -ChangePasswordAtLogon $true
+Unlock-ADAccount -Identity $user`
+  },
+  {
+    id: 'nested-groups',
+    title: 'Audit Nested Group Membership',
+    desc: 'Recursively list all members of a security group, including nested groups.',
+    tags: ['groups', 'security'],
+    code: `function Get-NestedMembers {
+  param([string]$GroupName)
+  Get-ADGroupMember -Identity $GroupName -Recursive |
+    Where-Object {$_.objectClass -eq 'user'} |
+    Select-Object SamAccountName, DistinguishedName
+}
+Get-NestedMembers "Domain Admins" | Format-Table -AutoSize`
+  },
+  {
+    id: 'gpo-backup',
+    title: 'Backup All GPOs',
+    desc: 'Export every GPO in the domain to a timestamped folder.',
+    tags: ['gpo'],
+    code: `$backupPath = "C:\\GPOBackups\\$(Get-Date -Format 'yyyyMMdd-HHmm')"
+New-Item -ItemType Directory -Path $backupPath -Force | Out-Null
+Backup-GPO -All -Path $backupPath
+Write-Host "Backed up $(Get-ChildItem $backupPath -Directory | Measure-Object | Select -Expand Count) GPOs to $backupPath"`
+  },
+  {
+    id: 'gpo-report',
+    title: 'Generate HTML Report for All GPOs',
+    desc: 'Export every GPO as an HTML report for documentation or audit.',
+    tags: ['gpo'],
+    code: `$reportPath = "C:\\GPOReports"
+New-Item -ItemType Directory -Path $reportPath -Force | Out-Null
+Get-GPO -All | ForEach-Object {
+  $safeName = $_.DisplayName -replace '[\\\\/:*?"<>|]','_'
+  Get-GPOReport -Guid $_.Id -ReportType Html -Path "$reportPath\\$safeName.html"
+}`
+  },
+  {
+    id: 'fsmo-query',
+    title: 'Query FSMO Role Holders',
+    desc: 'Show which DC owns each of the 5 FSMO roles.',
+    tags: ['fsmo', 'health'],
+    code: `Get-ADForest | Select-Object SchemaMaster, DomainNamingMaster
+Get-ADDomain  | Select-Object PDCEmulator, RIDMaster, InfrastructureMaster
+# One-liner alternative:
+netdom query fsmo`
+  },
+  {
+    id: 'fsmo-transfer',
+    title: 'Transfer FSMO Roles to New DC',
+    desc: 'Gracefully transfer all 5 FSMO roles to a target DC.',
+    tags: ['fsmo'],
+    code: `$target = "DC02"
+Move-ADDirectoryServerOperationMasterRole -Identity $target \`
+  -OperationMasterRole SchemaMaster, DomainNamingMaster, PDCEmulator, RIDMaster, InfrastructureMaster -Confirm:$false
+Get-ADForest | Select-Object SchemaMaster, DomainNamingMaster
+Get-ADDomain  | Select-Object PDCEmulator, RIDMaster, InfrastructureMaster`
+  },
+  {
+    id: 'fsmo-seize',
+    title: 'Seize FSMO Roles (emergency)',
+    desc: 'Force FSMO transfer when the previous holder is permanently gone. Use only when graceful transfer is impossible.',
+    tags: ['fsmo'],
+    code: `# WARNING: Only use when the original role holder is permanently unavailable.
+$target = "DC02"
+Move-ADDirectoryServerOperationMasterRole -Identity $target \`
+  -OperationMasterRole SchemaMaster, DomainNamingMaster, PDCEmulator, RIDMaster, InfrastructureMaster \`
+  -Force -Confirm:$false`
+  },
+  {
+    id: 'repl-health',
+    title: 'Replication Health Summary',
+    desc: 'Run core replication checks and show failing links.',
+    tags: ['replication', 'health'],
+    code: `repadmin /replsummary
+repadmin /showrepl * /csv | ConvertFrom-Csv |
+  Where-Object {$_.'Number of Failures' -gt 0} |
+  Select-Object 'Source DSA','Destination DSA','Naming Context','Number of Failures','Last Failure Status'`
+  },
+  {
+    id: 'dcdiag-all',
+    title: 'Run DCDIAG Across All DCs',
+    desc: 'Run comprehensive DCDIAG tests on every DC and capture a log.',
+    tags: ['replication', 'health'],
+    code: `$log = "C:\\DCDiag-$(Get-Date -Format 'yyyyMMdd').log"
+Get-ADDomainController -Filter * | ForEach-Object {
+  Add-Content $log "===== $($_.Name) ====="
+  dcdiag /s:$($_.HostName) /v /c /e 2>&1 | Add-Content $log
+}
+Write-Host "Report saved: $log"`
+  },
+  {
+    id: 'enable-recyclebin',
+    title: 'Enable AD Recycle Bin',
+    desc: 'ONE-WAY: Enable the AD Recycle Bin forest-wide. Requires forest FL 2008 R2+.',
+    tags: ['security'],
+    code: `# This action is IRREVERSIBLE.
+Enable-ADOptionalFeature \`
+  -Identity "Recycle Bin Feature" \`
+  -Scope ForestOrConfigurationSet \`
+  -Target (Get-ADForest).Name \`
+  -Confirm:$false
+Get-ADOptionalFeature -Filter 'name -like "Recycle Bin*"'`
+  },
+  {
+    id: 'rotate-krbtgt',
+    title: 'Rotate krbtgt Password (safely)',
+    desc: 'Reset krbtgt to invalidate Golden Tickets. Repeat twice with a gap for safety.',
+    tags: ['security'],
+    code: `# Phase 1: Reset once. Wait 10h+ for replication + ticket expiry. Then run again.
+# Microsoft script: Reset-KrbTgt-Password-For-RWDCs.ps1
+# Simple manual version (TEST FIRST, DO NOT RUN IN PROD without reading Microsoft docs):
+$krbtgt = Get-ADUser krbtgt -Properties PasswordLastSet
+Write-Host "Current krbtgt password age: $(((Get-Date) - $krbtgt.PasswordLastSet).Days) days"
+# Reset with a long random password
+Set-ADAccountPassword -Identity krbtgt -Reset \`
+  -NewPassword (ConvertTo-SecureString (([char[]](48..122) | Get-Random -Count 32) -join '') -AsPlainText -Force)`
+  },
+  {
+    id: 'sysvol-check',
+    title: 'Check SYSVOL Replication',
+    desc: 'Verify SYSVOL is replicating via DFSR and no backlog exists.',
+    tags: ['replication', 'health'],
+    code: `# DFSR SYSVOL check
+Get-DfsrState -ComputerName (Get-ADDomainController -Filter *).Name | Format-Table ComputerName, UpdateState, InConflict -AutoSize
+# Backlog check (run from each DC pair)
+# dfsrdiag Backlog /RGName:"Domain System Volume" /RFName:SYSVOL Share /SMem:DC01 /RMem:DC02`
+  },
+  {
+    id: 'enable-laps',
+    title: 'Enable Windows LAPS (Intune / GPO)',
+    desc: 'Enable the built-in Windows LAPS feature via PowerShell (AD-backed).',
+    tags: ['security'],
+    code: `# Extend the AD schema for Windows LAPS (one-time, Schema Admin)
+Update-LapsADSchema
+
+# Grant computers permission to update their own LAPS password
+$ou = "OU=Computers,DC=contoso,DC=com"
+Set-LapsADComputerSelfPermission -Identity $ou
+
+# Grant a group permission to read the password
+Set-LapsADReadPasswordPermission -Identity $ou -AllowedPrincipals "LAPS-Readers"`
+  },
+  {
+    id: 'find-weak-spn',
+    title: 'Hunt Kerberoastable Accounts',
+    desc: 'Find user accounts with SPNs that are vulnerable to Kerberoasting.',
+    tags: ['security'],
+    code: `Get-ADUser -Filter {ServicePrincipalName -like "*" -and Enabled -eq $true} \`
+  -Properties ServicePrincipalName, PasswordLastSet, 'msDS-SupportedEncryptionTypes' |
+  Select-Object SamAccountName,
+    @{n='SPNs';e={$_.ServicePrincipalName -join ';'}},
+    @{n='PwdAgeDays';e={((Get-Date) - $_.PasswordLastSet).Days}},
+    @{n='AESOnly';e={($_.'msDS-SupportedEncryptionTypes' -band 0x18) -eq 0x18}}`
+  },
+];
+
+function renderRecipes() {
+  const list = document.getElementById('recipeList');
+  if (!list) return;
+  list.innerHTML = RECIPES.map(r => `
+    <article class="recipe-card" data-tags="${r.tags.join(' ')}" data-search="${(r.title + ' ' + r.desc + ' ' + r.tags.join(' ')).toLowerCase()}" id="recipe-${r.id}">
+      <div class="recipe-head">
+        <div class="recipe-title-row">
+          <h4>${escapeHtml(r.title)}</h4>
+          <div class="recipe-desc">${escapeHtml(r.desc)}</div>
+          <div class="recipe-tag-list">${r.tags.map(t => `<span class="recipe-tag-chip">${escapeHtml(t)}</span>`).join('')}</div>
+        </div>
+        <div class="recipe-actions">
+          <button class="recipe-btn" onclick="copyRecipe('${r.id}', this)">Copy</button>
+          <button class="recipe-btn" onclick="downloadRecipe('${r.id}')">&#11015; .ps1</button>
+        </div>
+      </div>
+      <pre><code>${escapeHtml(r.code)}</code></pre>
+    </article>
+  `).join('') + '<div class="recipe-empty" id="recipeEmpty" style="display:none;">No recipes match that filter.</div>';
+}
+renderRecipes();
+
+function copyRecipe(id, btn) {
+  const r = RECIPES.find(x => x.id === id);
+  if (!r) return;
+  const done = () => {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1600);
+  };
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(r.code).then(done).catch(() => done());
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = r.code;
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+}
+
+function downloadRecipe(id) {
+  const r = RECIPES.find(x => x.id === id);
+  if (!r) return;
+  const header = `<# \n  ${r.title}\n  ${r.desc}\n  Tags: ${r.tags.join(', ')}\n  Source: AD Implementation Guide\n#>\n\n`;
+  const blob = new Blob([header + r.code], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${r.id}.ps1`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast(`Downloaded ${r.id}.ps1`);
+}
+
+function filterRecipes() {
+  const activeTag = document.querySelector('.recipe-tag.active');
+  const tag = activeTag ? activeTag.dataset.tag : 'all';
+  const q = (document.getElementById('recipeSearch').value || '').trim().toLowerCase();
+  let visible = 0;
+  document.querySelectorAll('.recipe-card').forEach(card => {
+    const tags = (card.dataset.tags || '').split(' ');
+    const matchesTag = tag === 'all' || tags.includes(tag);
+    const matchesQ = !q || (card.dataset.search || '').includes(q);
+    const show = matchesTag && matchesQ;
+    card.classList.toggle('hidden', !show);
+    if (show) visible++;
+  });
+  const empty = document.getElementById('recipeEmpty');
+  if (empty) empty.style.display = visible === 0 ? 'block' : 'none';
+}
+
+document.querySelectorAll('.recipe-tag').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.recipe-tag').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    filterRecipes();
+  });
+});
+const recipeSearchInput = document.getElementById('recipeSearch');
+if (recipeSearchInput) recipeSearchInput.addEventListener('input', filterRecipes);
+
+// ===== CHECKLIST PERSISTENCE =====
+const CHECKLIST_KEY = 'ad-guide-checklist-v1';
+(function restoreChecklist() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(CHECKLIST_KEY) || '{}');
+    Object.entries(saved).forEach(([id, checked]) => {
+      const el = document.getElementById(id);
+      if (el && checked) {
+        el.classList.add('checked');
+        const check = el.querySelector('.cl-check');
+        if (check) check.textContent = '☑';
+      }
+    });
+  } catch (e) {}
+})();
+
+const origToggleCheck = window.toggleCheck;
+window.toggleCheck = function(id) {
+  const item = document.getElementById(id);
+  if (!item) return;
+  const check = item.querySelector('.cl-check');
+  const isChecked = item.classList.toggle('checked');
+  if (check) check.textContent = isChecked ? '☑' : '☐';
+  try {
+    const saved = JSON.parse(localStorage.getItem(CHECKLIST_KEY) || '{}');
+    if (isChecked) saved[id] = true; else delete saved[id];
+    localStorage.setItem(CHECKLIST_KEY, JSON.stringify(saved));
+  } catch (e) {}
+};
+
+// ===== SHORTCUTS MODAL =====
+const shortcutsModal = document.getElementById('shortcutsModal');
+const shortcutsBackdrop = document.getElementById('shortcutsBackdrop');
+const shortcutsBtn = document.getElementById('shortcutsBtn');
+const shortcutsClose = document.getElementById('shortcutsClose');
+
+function openShortcuts() {
+  if (!shortcutsModal) return;
+  shortcutsModal.classList.add('open');
+  shortcutsModal.setAttribute('aria-hidden', 'false');
+}
+function closeShortcuts() {
+  if (!shortcutsModal) return;
+  shortcutsModal.classList.remove('open');
+  shortcutsModal.setAttribute('aria-hidden', 'true');
+}
+if (shortcutsBtn) shortcutsBtn.addEventListener('click', openShortcuts);
+if (shortcutsBackdrop) shortcutsBackdrop.addEventListener('click', closeShortcuts);
+if (shortcutsClose) shortcutsClose.addEventListener('click', closeShortcuts);
+
+// ===== GLOBAL KEYBOARD SHORTCUTS =====
+let gKeyTimer = null;
+document.addEventListener('keydown', (e) => {
+  // Ignore when typing in an input
+  const t = e.target;
+  if (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable) return;
+  // Esc closes modals
+  if (e.key === 'Escape') {
+    if (shortcutsModal && shortcutsModal.classList.contains('open')) closeShortcuts();
+    return;
+  }
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+  if (e.key === '?') { e.preventDefault(); openShortcuts(); return; }
+  if (e.key === 't' || e.key === 'T') {
+    if (themeToggle) { e.preventDefault(); themeToggle.click(); }
+    return;
+  }
+  if (e.key === 'g' || e.key === 'G') {
+    gKeyTimer = Date.now();
+    setTimeout(() => { gKeyTimer = null; }, 1500);
+    return;
+  }
+  if (gKeyTimer && Date.now() - gKeyTimer < 1500) {
+    const map = { t: '#home', p: '#powershell', s: '#security', f: '#faq', a: '#alternatives', c: '#calculator', b: '#best-practices', d: '#templates' };
+    const target = map[e.key.toLowerCase()];
+    if (target) {
+      e.preventDefault();
+      gKeyTimer = null;
+      if (target === '#home') scrollToTop();
+      else window.location.hash = target;
+    }
+  }
+});
+
+// ===== COPY-LINK ANCHORS ON HEADINGS =====
+(function addHeadingAnchors() {
+  document.querySelectorAll('section[id] .section-title, section[id] .subsection-title').forEach(h => {
+    const section = h.closest('section[id]');
+    if (!section) return;
+    const btn = document.createElement('button');
+    btn.className = 'heading-anchor';
+    btn.type = 'button';
+    btn.textContent = '#';
+    btn.setAttribute('aria-label', 'Copy link to this section');
+    btn.setAttribute('title', 'Copy link to section');
+    btn.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      const url = `${location.origin}${location.pathname}#${section.id}`;
+      const done = () => {
+        btn.textContent = '✓';
+        btn.classList.add('copied');
+        toast('Link copied');
+        setTimeout(() => { btn.textContent = '#'; btn.classList.remove('copied'); }, 1600);
+      };
+      if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(url).then(done).catch(() => done());
+      else { const ta = document.createElement('textarea'); ta.value = url; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); done(); } catch (e) {} document.body.removeChild(ta); }
+    });
+    h.appendChild(btn);
+  });
+})();
+
+// ===== EXCEL TEMPLATE DOWNLOADS =====
+// Generates HTML-based .xls files that Excel opens as a real workbook.
+function xlsSheetHtml(title, headers, rows) {
+  const headerHtml = headers.map(h => `<th style="background:#1f4e79;color:#fff;font-weight:bold;border:1px solid #999;padding:6px;">${h}</th>`).join('');
+  const bodyHtml = rows.map((r, i) => {
+    const bg = i % 2 ? 'background:#f2f6fc;' : '';
+    return `<tr>${r.map((c, ci) => {
+      let cell = c == null ? '' : String(c);
+      let style = `border:1px solid #ccc;padding:6px;vertical-align:top;${bg}`;
+      if (ci === 0 && /^(PHASE|CATEGORY|SECTION)/i.test(cell)) {
+        style += 'font-weight:bold;background:#d9e2f3;';
+      }
+      return `<td style="${style}">${cell.replace(/\n/g, '<br>')}</td>`;
+    }).join('')}</tr>`;
+  }).join('');
+  return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="utf-8"><title>${title}</title>
+<xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>
+<x:Name>${title.substring(0,31)}</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
+</x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml>
+<style>table{border-collapse:collapse;font-family:Calibri,Arial,sans-serif;font-size:11pt;}</style>
+</head><body>
+<h2 style="font-family:Calibri;color:#1f4e79;">${title}</h2>
+<p style="font-family:Calibri;color:#666;font-size:10pt;">Generated from AD Implementation Guide — ${new Date().toISOString().slice(0,10)}</p>
+<table><thead><tr>${headerHtml}</tr></thead><tbody>${bodyHtml}</tbody></table>
+</body></html>`;
+}
+
+function downloadXls(filename, html) {
+  const blob = new Blob(['﻿' + html], { type: 'application/vnd.ms-excel' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast(`Downloaded ${filename}`);
+}
+
+const TEMPLATES = {
+  'new-ad-implementation': {
+    title: 'New AD Implementation Checklist',
+    headers: ['Phase', 'Task', 'Owner', 'Target Date', 'Status', 'Notes'],
+    rows: [
+      ['PHASE 1: PLANNING', '', '', '', '', ''],
+      ['Planning', 'Inventory current users, computers, applications', '', '', 'Not Started', ''],
+      ['Planning', 'Choose DNS namespace (routable, not .local)', '', '', 'Not Started', 'e.g., corp.contoso.com'],
+      ['Planning', 'Define OU structure (based on admin delegation)', '', '', 'Not Started', ''],
+      ['Planning', 'Determine number & placement of DCs', '', '', 'Not Started', 'Min 2 per domain'],
+      ['Planning', 'Plan AD Sites & Services topology', '', '', 'Not Started', ''],
+      ['Planning', 'Define IP addressing and VLANs for DCs', '', '', 'Not Started', ''],
+      ['Planning', 'Select Windows Server edition & licensing model', '', '', 'Not Started', ''],
+      ['Planning', 'Document FSMO role placement', '', '', 'Not Started', ''],
+      ['Planning', 'Backup/DR strategy defined', '', '', 'Not Started', ''],
+      ['PHASE 2: INFRASTRUCTURE PREP', '', '', '', '', ''],
+      ['Prep', 'Provision DC hardware/VMs (min 2 vCPU, 4GB RAM, 60GB disk)', '', '', 'Not Started', ''],
+      ['Prep', 'Install Windows Server, patch fully', '', '', 'Not Started', ''],
+      ['Prep', 'Rename server before promotion', '', '', 'Not Started', ''],
+      ['Prep', 'Configure static IP + DNS', '', '', 'Not Started', ''],
+      ['Prep', 'Open firewall ports (53, 88, 135, 389, 445, 636, 3268, 3269, 49152-65535)', '', '', 'Not Started', ''],
+      ['Prep', 'Enable NTP sync on PDC Emulator to external source', '', '', 'Not Started', ''],
+      ['PHASE 3: AD DS DEPLOYMENT', '', '', '', '', ''],
+      ['Deploy', 'Install AD DS role (Install-WindowsFeature)', '', '', 'Not Started', ''],
+      ['Deploy', 'Promote first DC (Install-ADDSForest)', '', '', 'Not Started', ''],
+      ['Deploy', 'Install additional DCs (Install-ADDSDomainController)', '', '', 'Not Started', ''],
+      ['Deploy', 'Verify replication (repadmin /replsummary)', '', '', 'Not Started', ''],
+      ['Deploy', 'Verify DNS (nslookup, DNS zones)', '', '', 'Not Started', ''],
+      ['Deploy', 'Confirm FSMO placement (netdom query fsmo)', '', '', 'Not Started', ''],
+      ['PHASE 4: POST-DEPLOYMENT', '', '', '', '', ''],
+      ['Post', 'Build OU structure', '', '', 'Not Started', ''],
+      ['Post', 'Create baseline GPOs (Default Domain Policy review)', '', '', 'Not Started', ''],
+      ['Post', 'Enable AD Recycle Bin (irreversible)', '', '', 'Not Started', ''],
+      ['Post', 'Raise functional level after all DCs stable', '', '', 'Not Started', ''],
+      ['Post', 'Create admin tier accounts (Tier 0/1/2)', '', '', 'Not Started', ''],
+      ['Post', 'Configure time sync hierarchy', '', '', 'Not Started', ''],
+      ['Post', 'Document admin/DSRM passwords in secure vault', '', '', 'Not Started', ''],
+      ['PHASE 5: TESTING', '', '', '', '', ''],
+      ['Test', 'Domain join test workstation', '', '', 'Not Started', ''],
+      ['Test', 'Test logon with new user', '', '', 'Not Started', ''],
+      ['Test', 'Test GPO application (gpresult /h)', '', '', 'Not Started', ''],
+      ['Test', 'Simulate DC failure, verify client failover', '', '', 'Not Started', ''],
+      ['Test', 'Restore test (System State backup)', '', '', 'Not Started', ''],
+      ['Test', 'Document known issues & mitigation', '', '', 'Not Started', ''],
+    ]
+  },
+  'ad-upgrade': {
+    title: 'AD Upgrade Checklist',
+    headers: ['Phase', 'Task', 'Owner', 'Target Date', 'Status', 'Notes / Evidence'],
+    rows: [
+      ['PHASE 1: PRE-UPGRADE ASSESSMENT', '', '', '', '', ''],
+      ['Assessment', 'Document current OS version on every DC', '', '', 'Not Started', ''],
+      ['Assessment', 'Current Domain Functional Level', '', '', 'Not Started', ''],
+      ['Assessment', 'Current Forest Functional Level', '', '', 'Not Started', ''],
+      ['Assessment', 'Verify no legacy (NT4/2003/2008R2) DCs', '', '', 'Not Started', ''],
+      ['Assessment', 'Replication is healthy (repadmin /replsummary)', '', '', 'Not Started', ''],
+      ['Assessment', 'SYSVOL on DFSR (not FRS)', '', '', 'Not Started', ''],
+      ['Assessment', 'dcdiag /c /e clean on all DCs', '', '', 'Not Started', ''],
+      ['Assessment', 'Confirm backup success (System State, within 24h)', '', '', 'Not Started', ''],
+      ['Assessment', 'Identify apps bound to specific DC IPs/names', '', '', 'Not Started', ''],
+      ['PHASE 2: PREREQUISITES', '', '', '', '', ''],
+      ['Prereq', 'Target Server OS media/ISO available', '', '', 'Not Started', ''],
+      ['Prereq', 'Licenses available for target edition', '', '', 'Not Started', ''],
+      ['Prereq', 'Maintenance window approved', '', '', 'Not Started', ''],
+      ['Prereq', 'Rollback plan documented', '', '', 'Not Started', ''],
+      ['Prereq', 'Schema Admin / Enterprise Admin credentials ready', '', '', 'Not Started', ''],
+      ['PHASE 3: MIGRATION (Introduce → Transfer → Decommission)', '', '', '', '', ''],
+      ['Migration', 'Install new DC with target OS, join domain', '', '', 'Not Started', ''],
+      ['Migration', 'Install AD DS role, promote (Install-ADDSDomainController)', '', '', 'Not Started', ''],
+      ['Migration', 'Wait for full replication sync', '', '', 'Not Started', ''],
+      ['Migration', 'Configure DNS on new DC (AD-integrated)', '', '', 'Not Started', ''],
+      ['Migration', 'Set as Global Catalog', '', '', 'Not Started', ''],
+      ['Migration', 'Transfer FSMO roles to new DC', '', '', 'Not Started', ''],
+      ['Migration', 'Update DHCP scope DNS options to new DC IPs', '', '', 'Not Started', ''],
+      ['Migration', 'Update any hard-coded DC IPs in apps', '', '', 'Not Started', ''],
+      ['Migration', 'Demote old DCs (Uninstall-ADDSDomainController)', '', '', 'Not Started', ''],
+      ['Migration', 'Clean up AD Sites & Services (remove old DC refs)', '', '', 'Not Started', ''],
+      ['Migration', 'Metadata cleanup if any non-graceful removals', '', '', 'Not Started', ''],
+      ['PHASE 4: FUNCTIONAL LEVEL RAISE', '', '', '', '', ''],
+      ['FL Raise', 'Verify all DCs on target OS', '', '', 'Not Started', ''],
+      ['FL Raise', 'Set-ADDomainMode on each domain', '', '', 'Not Started', ''],
+      ['FL Raise', 'Set-ADForestMode on the forest', '', '', 'Not Started', ''],
+      ['FL Raise', 'Verify new DFL/FFL (Get-ADDomain, Get-ADForest)', '', '', 'Not Started', ''],
+      ['PHASE 5: VALIDATION', '', '', '', '', ''],
+      ['Validate', 'Replication healthy across all new DCs', '', '', 'Not Started', ''],
+      ['Validate', 'DNS resolution from all client sites', '', '', 'Not Started', ''],
+      ['Validate', 'Client logons succeed', '', '', 'Not Started', ''],
+      ['Validate', 'GPOs apply correctly (gpresult /h)', '', '', 'Not Started', ''],
+      ['Validate', 'Line-of-business apps still authenticate', '', '', 'Not Started', ''],
+      ['Validate', 'Backups configured & tested on new DCs', '', '', 'Not Started', ''],
+    ]
+  },
+  'assessment-questionnaire': {
+    title: 'AD Assessment Questionnaire',
+    headers: ['Category', 'Question', 'Answer', 'Risk', 'Follow-Up Action'],
+    rows: [
+      ['CATEGORY: SCALE & SCOPE', '', '', '', ''],
+      ['Scale', 'How many user accounts (active)?', '', '', ''],
+      ['Scale', 'How many computer accounts?', '', '', ''],
+      ['Scale', 'How many physical sites?', '', '', ''],
+      ['Scale', 'How many domains / child domains?', '', '', ''],
+      ['Scale', 'How many forests / forest trusts?', '', '', ''],
+      ['CATEGORY: DC INFRASTRUCTURE', '', '', '', ''],
+      ['DCs', 'Total number of DCs?', '', '', ''],
+      ['DCs', 'OS versions in use (list each)', '', '', ''],
+      ['DCs', 'Virtualized? Hypervisor platform?', '', '', ''],
+      ['DCs', 'Current Domain Functional Level?', '', '', ''],
+      ['DCs', 'Current Forest Functional Level?', '', '', ''],
+      ['DCs', 'FSMO role placement documented?', '', '', ''],
+      ['CATEGORY: SECURITY', '', '', '', ''],
+      ['Security', 'Tier model (0/1/2) implemented?', '', '', ''],
+      ['Security', 'PAW used for Tier 0?', '', '', ''],
+      ['Security', 'Windows LAPS deployed?', '', '', ''],
+      ['Security', 'Credential Guard enabled on Tier 0?', '', '', ''],
+      ['Security', 'MFA on admin accounts?', '', '', ''],
+      ['Security', 'NTLMv1 disabled?', '', '', ''],
+      ['Security', 'LDAP signing + channel binding enforced?', '', '', ''],
+      ['Security', 'krbtgt password age (days)?', '', '', ''],
+      ['Security', 'AD Recycle Bin enabled?', '', '', ''],
+      ['Security', 'Defender for Identity deployed?', '', '', ''],
+      ['Security', 'Audit policy configured (Account Mgmt, Kerberos)?', '', '', ''],
+      ['CATEGORY: OPERATIONS', '', '', '', ''],
+      ['Ops', 'Who owns AD day-to-day?', '', '', ''],
+      ['Ops', 'Backup frequency and type?', '', '', ''],
+      ['Ops', 'Last successful restore test date?', '', '', ''],
+      ['Ops', 'Monitoring in place (SIEM / Defender / native)?', '', '', ''],
+      ['Ops', 'Patching cadence for DCs?', '', '', ''],
+      ['Ops', 'Change control process?', '', '', ''],
+      ['CATEGORY: HYBRID / CLOUD', '', '', '', ''],
+      ['Hybrid', 'Entra ID in use?', '', '', ''],
+      ['Hybrid', 'Entra Connect: version, sync method?', '', '', ''],
+      ['Hybrid', 'Conditional Access policies defined?', '', '', ''],
+      ['Hybrid', 'Hybrid Join configured?', '', '', ''],
+      ['Hybrid', 'Password writeback enabled?', '', '', ''],
+      ['CATEGORY: COMPLIANCE', '', '', '', ''],
+      ['Compliance', 'Password policy (min length, complexity, age)?', '', '', ''],
+      ['Compliance', 'Account lockout policy?', '', '', ''],
+      ['Compliance', 'Fine-grained password policies in use?', '', '', ''],
+      ['Compliance', 'Service accounts documented & owned?', '', '', ''],
+      ['Compliance', 'Stale account cleanup process?', '', '', ''],
+    ]
+  },
+  'security-checklist': {
+    title: 'AD Security Hardening Checklist',
+    headers: ['Category', 'Control', 'Priority', 'Status', 'Evidence / Notes'],
+    rows: [
+      ['SECTION: IDENTITY & PRIVILEGE', '', '', '', ''],
+      ['Identity', 'Implement Tier 0/1/2 admin model', 'Critical', 'Not Started', ''],
+      ['Identity', 'Add Tier 0 accounts to Protected Users group', 'Critical', 'Not Started', ''],
+      ['Identity', 'Use Privileged Access Workstations (PAWs)', 'Critical', 'Not Started', ''],
+      ['Identity', 'Daily driver accounts separate from admin accounts', 'Critical', 'Not Started', ''],
+      ['Identity', 'MFA enforced for all admin accounts', 'Critical', 'Not Started', ''],
+      ['Identity', 'Deploy Windows LAPS for local admin passwords', 'High', 'Not Started', ''],
+      ['Identity', 'Disable Domain Admins everyday use', 'Critical', 'Not Started', ''],
+      ['SECTION: KERBEROS / AUTH', '', '', '', ''],
+      ['Auth', 'Disable NTLMv1 (audit then enforce)', 'High', 'Not Started', ''],
+      ['Auth', 'Enforce AES-only on service accounts', 'High', 'Not Started', ''],
+      ['Auth', 'Disable WDigest cleartext caching', 'High', 'Not Started', ''],
+      ['Auth', 'Enable Credential Guard (Tier 0 / Tier 1 servers)', 'Critical', 'Not Started', ''],
+      ['Auth', 'LDAP signing + channel binding enforced', 'High', 'Not Started', ''],
+      ['Auth', 'SMB signing required (server + client)', 'Medium', 'Not Started', ''],
+      ['Auth', 'Rotate krbtgt annually (and after incidents)', 'High', 'Not Started', ''],
+      ['Auth', 'Remove unconstrained Kerberos delegation', 'High', 'Not Started', ''],
+      ['Auth', 'Eliminate accounts with DONT_REQ_PREAUTH', 'Medium', 'Not Started', ''],
+      ['SECTION: SERVICE ACCOUNTS', '', '', '', ''],
+      ['Svc', 'Use gMSA (or dMSA on WS2025) for services', 'High', 'Not Started', ''],
+      ['Svc', 'Service accounts with SPNs use AES only', 'High', 'Not Started', ''],
+      ['Svc', 'No service accounts in Domain Admins', 'Critical', 'Not Started', ''],
+      ['Svc', 'Service account passwords 25+ chars', 'High', 'Not Started', ''],
+      ['SECTION: PASSWORD POLICY', '', '', '', ''],
+      ['Password', 'Domain password policy: 14+ char min, max age <=120', 'Medium', 'Not Started', ''],
+      ['Password', 'Fine-grained password policy for admins (20+ char)', 'High', 'Not Started', ''],
+      ['Password', 'Account lockout policy (5 attempts, 15 min)', 'Medium', 'Not Started', ''],
+      ['Password', 'Banned password list / Azure AD Password Protection', 'High', 'Not Started', ''],
+      ['SECTION: MONITORING / DETECTION', '', '', '', ''],
+      ['Monitoring', 'Deploy Microsoft Defender for Identity', 'Critical', 'Not Started', ''],
+      ['Monitoring', 'SIEM: Sentinel/Splunk/Elastic with AD connector', 'High', 'Not Started', ''],
+      ['Monitoring', 'Alert on Event IDs 4720/4728/4732/4756', 'High', 'Not Started', ''],
+      ['Monitoring', 'Monitor Event 4769 w/ RC4 (Kerberoasting)', 'High', 'Not Started', ''],
+      ['Monitoring', 'Audit 4662 for DS-Replication-Get-Changes (DCSync)', 'Critical', 'Not Started', ''],
+      ['Monitoring', 'Honey accounts / canary tokens deployed', 'Medium', 'Not Started', ''],
+      ['SECTION: DC HARDENING', '', '', '', ''],
+      ['DC', 'DCs run dedicated role (no apps, no RDS)', 'Critical', 'Not Started', ''],
+      ['DC', 'No browsing or email on DCs', 'Critical', 'Not Started', ''],
+      ['DC', 'Latest cumulative updates installed', 'High', 'Not Started', ''],
+      ['DC', 'Microsoft Security Baseline applied', 'High', 'Not Started', ''],
+      ['DC', 'Firewall default-deny with explicit AD ports', 'Medium', 'Not Started', ''],
+      ['DC', 'AD Recycle Bin enabled', 'Medium', 'Not Started', ''],
+      ['SECTION: BACKUP / RECOVERY', '', '', '', ''],
+      ['Backup', 'Daily System State backup of all DCs', 'Critical', 'Not Started', ''],
+      ['Backup', 'Off-site / air-gapped backup retention', 'Critical', 'Not Started', ''],
+      ['Backup', 'Documented DSRM passwords (vault)', 'Critical', 'Not Started', ''],
+      ['Backup', 'Quarterly restore drill performed', 'High', 'Not Started', ''],
+      ['Backup', 'Forest recovery runbook exists & tested', 'Critical', 'Not Started', ''],
+    ]
+  },
+  'best-practices': {
+    title: 'AD Best Practices Audit',
+    headers: ['Area', 'Best Practice', 'Current State', 'Gap', 'Remediation'],
+    rows: [
+      ['AREA: ARCHITECTURE', '', '', '', ''],
+      ['Architecture', 'Minimum 2 DCs per domain', '', '', ''],
+      ['Architecture', 'At least 1 DC per physical site', '', '', ''],
+      ['Architecture', 'Global Catalog in every site', '', '', ''],
+      ['Architecture', 'FSMO roles documented & monitored', '', '', ''],
+      ['Architecture', 'Routable DNS namespace (not .local)', '', '', ''],
+      ['Architecture', 'Empty forest root for large enterprises', '', '', ''],
+      ['AREA: OU DESIGN', '', '', '', ''],
+      ['OUs', 'OU structure based on delegation (not org chart)', '', '', ''],
+      ['OUs', 'OU depth <= 5 levels', '', '', ''],
+      ['OUs', 'Dedicated Tier 0 OU protected from inheritance', '', '', ''],
+      ['OUs', 'Service account OU with restricted access', '', '', ''],
+      ['AREA: GROUP STRATEGY', '', '', '', ''],
+      ['Groups', 'AGDLP nesting model used', '', '', ''],
+      ['Groups', 'Clear naming convention (prefix/scope)', '', '', ''],
+      ['Groups', 'Owner attribute populated for all groups', '', '', ''],
+      ['Groups', 'Quarterly group membership reviews', '', '', ''],
+      ['AREA: GPO MANAGEMENT', '', '', '', ''],
+      ['GPO', 'Microsoft Security Baseline deployed', '', '', ''],
+      ['GPO', 'GPOs scoped (not applied forest-wide where avoidable)', '', '', ''],
+      ['GPO', 'GPO naming convention documented', '', '', ''],
+      ['GPO', 'Weekly GPO backup (Backup-GPO -All)', '', '', ''],
+      ['GPO', 'Change control for GPO edits', '', '', ''],
+      ['AREA: REPLICATION', '', '', '', ''],
+      ['Replication', 'All DCs replicate within 15 min intra-site', '', '', ''],
+      ['Replication', 'Site link costs reflect WAN bandwidth', '', '', ''],
+      ['Replication', 'SYSVOL on DFSR (not legacy FRS)', '', '', ''],
+      ['Replication', 'repadmin /replsummary scheduled check', '', '', ''],
+      ['AREA: TIME SYNC', '', '', '', ''],
+      ['Time', 'PDC Emulator syncs to external NTP', '', '', ''],
+      ['Time', 'All other DCs sync from PDC Emulator', '', '', ''],
+      ['Time', 'Domain members sync from any DC', '', '', ''],
+      ['Time', 'Monitoring for time drift >5s', '', '', ''],
+      ['AREA: OPERATIONS', '', '', '', ''],
+      ['Ops', 'Change management process for AD', '', '', ''],
+      ['Ops', 'Monthly patching cycle for DCs', '', '', ''],
+      ['Ops', 'Stale account cleanup (90 days)', '', '', ''],
+      ['Ops', 'Annual AD health assessment', '', '', ''],
+      ['Ops', 'Runbooks exist for FSMO seize / forest recovery', '', '', ''],
+      ['AREA: HYBRID', '', '', '', ''],
+      ['Hybrid', 'Entra Connect using Password Hash Sync (preferred)', '', '', ''],
+      ['Hybrid', 'Seamless SSO enabled', '', '', ''],
+      ['Hybrid', 'Conditional Access policies enforcing MFA', '', '', ''],
+      ['Hybrid', 'Hybrid Join configured where supported', '', '', ''],
+    ]
+  },
+};
+
+function downloadTemplate(key) {
+  const tpl = TEMPLATES[key];
+  if (!tpl) return;
+  const html = xlsSheetHtml(tpl.title, tpl.headers, tpl.rows);
+  downloadXls(`${key}-template.xls`, html);
+}
+
+function downloadAllTemplates() {
+  Object.keys(TEMPLATES).forEach((k, i) => setTimeout(() => downloadTemplate(k), i * 400));
+}
+
 // ===== SCROLL ANIMATIONS =====
 const fadeObserver = new IntersectionObserver((entries) => {
   entries.forEach(entry => {
@@ -460,7 +1178,7 @@ const fadeObserver = new IntersectionObserver((entries) => {
   });
 }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
 
-document.querySelectorAll('.card, .timeline-item, .phase, .fl-item, .bp-category, .faq-item, .resource-card, .lm-card').forEach(el => {
+document.querySelectorAll('.card, .timeline-item, .phase, .fl-item, .bp-category, .faq-item, .resource-card, .lm-card, .attack-card, .alt-card, .recipe-card, .template-card').forEach(el => {
   el.style.opacity = '0';
   el.style.transform = 'translateY(24px)';
   el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
