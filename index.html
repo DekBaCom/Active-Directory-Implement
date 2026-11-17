@@ -1189,6 +1189,8 @@ repadmin /showrepl</code></pre>
         <button class="tab-btn" data-tab="arch-medium">Medium (500–5,000)</button>
         <button class="tab-btn" data-tab="arch-enterprise">Enterprise (5,000+)</button>
         <button class="tab-btn" data-tab="arch-hybrid">Hybrid Cloud</button>
+        <button class="tab-btn" data-tab="arch-eds-cloud">Entra DS: Cloud-Only</button>
+        <button class="tab-btn" data-tab="arch-eds-hybrid">Entra DS: Hybrid</button>
       </div>
 
       <div class="tab-content active" id="tab-arch-small">
@@ -1371,6 +1373,187 @@ repadmin /showrepl</code></pre>
             </ul>
             <div class="arch-rec">
               <strong>&#128161; Recommendation:</strong> Password Hash Sync is the most resilient sync method. Enable Seamless SSO. Use Entra ID P2 for advanced identity security.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== ENTRA DS: CLOUD-ONLY DESIGN ===== -->
+      <div class="tab-content" id="tab-arch-eds-cloud">
+        <div class="arch-layout">
+          <div class="arch-diagram eds-cloud-arch">
+            <div class="arch-title">Microsoft Entra Domain Services &mdash; Cloud-Only Design</div>
+
+            <div class="arch-eds-wrap">
+              <div class="arch-eds-identity">
+                <div class="arch-eds-head">&#9729; Microsoft Entra ID (Identity Source of Truth)</div>
+                <div class="arch-eds-sub">
+                  <div class="arch-eds-chip">&#128100; Cloud Users</div>
+                  <div class="arch-eds-chip">&#128101; Groups</div>
+                  <div class="arch-eds-chip">&#128273; Password Hashes</div>
+                  <div class="arch-eds-chip">&#128274; Conditional Access</div>
+                </div>
+              </div>
+
+              <div class="arch-eds-flow">
+                <div class="arch-eds-flow-line">&darr;</div>
+                <div class="arch-eds-flow-lbl">One-way sync (users, groups, NTLM/Kerberos hashes)</div>
+              </div>
+
+              <div class="arch-eds-mgmt">
+                <div class="arch-eds-head azure-head">&#128230; Azure Managed Domain &mdash; <code>aaddscontoso.com</code></div>
+                <div class="arch-eds-vnet">
+                  <div class="arch-vnet-label">VNet: 10.0.0.0/16 &middot; subnet: 10.0.1.0/24 &middot; DNS: [DC IPs]</div>
+                  <div class="arch-eds-dcs">
+                    <div class="arch-eds-dc">
+                      <div class="dc-icon">&#128187;</div>
+                      <div class="dc-name">Managed DC-1</div>
+                      <div class="dc-role">LDAP / Kerberos / NTLM</div>
+                    </div>
+                    <div class="arch-eds-dc">
+                      <div class="dc-icon">&#128187;</div>
+                      <div class="dc-name">Managed DC-2</div>
+                      <div class="dc-role">HA pair (Microsoft-managed)</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="arch-eds-flow">
+                <div class="arch-eds-flow-line">&darr;</div>
+                <div class="arch-eds-flow-lbl">Domain join / Kerberos auth</div>
+              </div>
+
+              <div class="arch-eds-workloads">
+                <div class="arch-eds-head wl-head">&#128230; Azure Workloads (same VNet or peered)</div>
+                <div class="arch-eds-wl-grid">
+                  <div class="arch-eds-wl">&#128187; Azure VMs<br><small>Windows / Linux domain-joined</small></div>
+                  <div class="arch-eds-wl">&#128193; Azure Files<br><small>Kerberos SMB</small></div>
+                  <div class="arch-eds-wl">&#128246; Azure Virtual Desktop<br><small>AVD host pools</small></div>
+                  <div class="arch-eds-wl">&#128194; SQL Server IaaS<br><small>Integrated auth</small></div>
+                  <div class="arch-eds-wl">&#128274; LoB Apps<br><small>LDAP(S) bind</small></div>
+                  <div class="arch-eds-wl">&#128193; App Service Env.<br><small>v3 domain-joined</small></div>
+                </div>
+              </div>
+
+              <div class="arch-eds-optional">
+                <div class="arch-eds-opt-title">Optional &mdash; Geo-redundancy</div>
+                <div class="arch-eds-opt-body">
+                  <div class="arch-eds-chip">&#127760; Replica set in a 2nd Azure region</div>
+                  <div class="arch-eds-chip">&#128274; Secure LDAP (LDAPS)</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="arch-specs">
+            <h4>Specifications</h4>
+            <ul>
+              <li><strong>Identity source:</strong> Microsoft Entra ID (cloud-only)</li>
+              <li><strong>DCs:</strong> 2 managed by Microsoft (no admin access)</li>
+              <li><strong>Protocols:</strong> LDAP, Kerberos, NTLM, Domain Join, GPO (limited)</li>
+              <li><strong>Sync:</strong> One-way from Entra ID; users must reset password once to generate hashes</li>
+              <li><strong>Admin:</strong> AAD DC Administrators group (scoped)</li>
+              <li><strong>Not supported:</strong> Schema extensions, LDAP write, Domain/Enterprise Admin, trusts to Entra DS</li>
+              <li><strong>Pricing:</strong> ~$0.10/hr Standard (~$73/mo), Enterprise/Premium cost more</li>
+            </ul>
+            <div class="arch-rec">
+              <strong>&#128161; Recommendation:</strong> Use for cloud-native orgs needing classic protocols (Kerberos/LDAP) without running DCs. Pair with Secure LDAP and a 2nd-region replica set for production.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== ENTRA DS: HYBRID DESIGN ===== -->
+      <div class="tab-content" id="tab-arch-eds-hybrid">
+        <div class="arch-layout">
+          <div class="arch-diagram eds-hybrid-arch">
+            <div class="arch-title">Microsoft Entra Domain Services &mdash; Hybrid Design</div>
+
+            <div class="arch-hybrid-two">
+
+              <div class="arch-hybrid-side onprem">
+                <div class="arch-hybrid-env">&#127970; On-Premises Datacenter</div>
+                <div class="arch-forest-box">
+                  <div class="arch-forest-label">Forest: corp.contoso.com</div>
+                  <div class="arch-domain-box">
+                    <div class="arch-domain-label">&#127968; AD DS Domain</div>
+                    <div class="arch-dc-row">
+                      <div class="arch-dc primary-dc"><div>&#128187;</div><div>DC-01</div><div class="dc-role">PDC / FSMO</div></div>
+                      <div class="arch-dc secondary-dc"><div>&#128187;</div><div>DC-02</div><div class="dc-role">GC / Redundancy</div></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="arch-pill-row">
+                  <div class="arch-pill">&#128187; Workstations</div>
+                  <div class="arch-pill">&#128188; File / Print</div>
+                  <div class="arch-pill">&#128274; LoB apps</div>
+                </div>
+                <div class="arch-connect-box">&#8645; Microsoft Entra Connect<br><small>Password Hash Sync (required for Entra DS)</small></div>
+              </div>
+
+              <div class="arch-hybrid-bridge">
+                <div class="bridge-icon">&#9729;</div>
+                <div class="bridge-line"></div>
+                <div class="bridge-label">ExpressRoute<br>/ Site-to-Site VPN</div>
+              </div>
+
+              <div class="arch-hybrid-side cloud">
+                <div class="arch-hybrid-env">&#9729; Microsoft Azure</div>
+
+                <div class="arch-entraid-box">
+                  <div class="arch-entraid-label">&#128274; Microsoft Entra ID</div>
+                  <div class="arch-entraid-sub">
+                    <div class="arch-eds-chip">MFA</div>
+                    <div class="arch-eds-chip">Conditional Access</div>
+                    <div class="arch-eds-chip">SSPR</div>
+                    <div class="arch-eds-chip">Identity Protection</div>
+                  </div>
+                </div>
+
+                <div class="arch-eds-flow short">
+                  <div class="arch-eds-flow-line">&darr;</div>
+                  <div class="arch-eds-flow-lbl">Sync hashes to managed domain</div>
+                </div>
+
+                <div class="arch-eds-mgmt in-cloud-col">
+                  <div class="arch-eds-head azure-head">&#128230; Entra DS &mdash; <code>aadds.contoso.com</code></div>
+                  <div class="arch-eds-vnet">
+                    <div class="arch-vnet-label">Dedicated VNet &middot; peered to hub &middot; distinct namespace</div>
+                    <div class="arch-eds-dcs">
+                      <div class="arch-eds-dc"><div class="dc-icon">&#128187;</div><div class="dc-name">Managed DC-1</div></div>
+                      <div class="arch-eds-dc"><div class="dc-icon">&#128187;</div><div class="dc-name">Managed DC-2</div></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="arch-pill-row">
+                  <div class="arch-pill">&#128187; Azure VMs</div>
+                  <div class="arch-pill">&#128246; AVD</div>
+                  <div class="arch-pill">&#128193; Azure Files</div>
+                  <div class="arch-pill">&#128194; SQL IaaS</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="arch-trust-row">
+              <div class="trust-flow">&larr;&middot;&middot;&middot;&middot;&middot; Optional one-way outbound forest trust (on-prem AD &rarr; Entra DS) &middot;&middot;&middot;&middot;&middot;&rarr;</div>
+            </div>
+          </div>
+
+          <div class="arch-specs">
+            <h4>Hybrid Components</h4>
+            <ul>
+              <li><strong>Source of truth:</strong> on-prem AD DS (corp.contoso.com)</li>
+              <li><strong>Entra Connect:</strong> Password Hash Sync (PHS) is required &mdash; PTA alone will not work</li>
+              <li><strong>Entra DS namespace:</strong> use a distinct DNS suffix (e.g. <code>aadds.contoso.com</code>) to avoid collisions and allow a one-way trust</li>
+              <li><strong>Network:</strong> ExpressRoute or S2S VPN; peer Entra DS VNet to hub</li>
+              <li><strong>Optional trust:</strong> one-way outbound forest trust from on-prem AD &rarr; Entra DS (on-prem users access Entra-DS-joined resources without existing in Entra DS)</li>
+              <li><strong>Workload routing:</strong> Azure lift-and-shift apps join <code>aadds.contoso.com</code>; on-prem apps keep using <code>corp.contoso.com</code></li>
+              <li><strong>Password reset wave:</strong> on-prem users who existed before PHS enablement must change their password once</li>
+            </ul>
+            <div class="arch-rec">
+              <strong>&#128161; Recommendation:</strong> Use for lift-and-shift of legacy AD-dependent apps to Azure while keeping on-prem AD as the authoritative identity source. Avoid namespace collision by picking distinct DNS names.
             </div>
           </div>
         </div>

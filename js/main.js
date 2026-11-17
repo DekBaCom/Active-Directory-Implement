@@ -406,6 +406,8 @@ const SEARCH_INDEX = [
   { title: 'Entra DS vs AD DS comparison', hash: '#entra-ds', keywords: 'entra ds vs ad ds comparison managed on-prem schema ldap write domain admin trust' },
   { title: 'Entra DS cloud-only implementation', hash: '#entra-ds', keywords: 'entra ds cloud only implementation provision azure vnet dns password sync az cli ad ds' },
   { title: 'Entra DS hybrid implementation', hash: '#entra-ds', keywords: 'entra ds hybrid entra connect password hash sync phs forest trust vpn expressroute' },
+  { title: 'Entra DS Cloud-Only Architecture', hash: '#architecture', keywords: 'entra ds cloud only architecture design diagram azure vnet dc managed workloads avd files sql' },
+  { title: 'Entra DS Hybrid Architecture', hash: '#architecture', keywords: 'entra ds hybrid architecture design diagram on-prem ad ds entra connect phs forest trust expressroute' },
 ];
 
 function openSearch() {
