@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 760" font-family="Inter, 'Segoe UI', system-ui, sans-serif" role="img" aria-labelledby="t d">
+  <title id="t">Microsoft Entra Domain Services — Cloud-Only Design</title>
+  <desc id="d">Architecture diagram: Microsoft Entra ID syncs one-way into a Microsoft-managed domain hosted in an Azure VNet; Azure workloads (VMs, Files, AVD, SQL, LoB apps) domain-join that managed domain.</desc>
+
+  <defs>
+    <linearGradient id="skyBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0d1b2a" stop-opacity="0"/>
+      <stop offset="1" stop-color="#0d1b2a" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="entraFill" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#50e6ff" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#0078d4" stop-opacity="0.18"/>
+    </linearGradient>
+    <linearGradient id="dcFill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0078d4" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#0078d4" stop-opacity="0.08"/>
+    </linearGradient>
+    <linearGradient id="wlFill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#57d9a3" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#57d9a3" stop-opacity="0.06"/>
+    </linearGradient>
+    <linearGradient id="optFill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd700" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#ffd700" stop-opacity="0.04"/>
+    </linearGradient>
+
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#50e6ff"/>
+    </marker>
+
+    <!-- Reusable icons -->
+    <symbol id="iconCloud" viewBox="0 0 64 40">
+      <path d="M18 28a8 8 0 0 1 2-15.7A13 13 0 0 1 45 15a8 8 0 0 1 2 15.7z" fill="#50e6ff" opacity="0.9"/>
+    </symbol>
+    <symbol id="iconDC" viewBox="0 0 64 64">
+      <rect x="10" y="10" width="44" height="44" rx="4" fill="#0078d4" opacity="0.85"/>
+      <rect x="16" y="18" width="32" height="4" fill="#fff" opacity="0.85"/>
+      <rect x="16" y="26" width="32" height="4" fill="#fff" opacity="0.6"/>
+      <rect x="16" y="34" width="32" height="4" fill="#fff" opacity="0.45"/>
+      <circle cx="46" cy="46" r="3" fill="#57d9a3"/>
+    </symbol>
+    <symbol id="iconVM" viewBox="0 0 64 64">
+      <rect x="8" y="12" width="48" height="34" rx="2" fill="#0078d4" opacity="0.8"/>
+      <rect x="12" y="16" width="40" height="22" fill="#50e6ff" opacity="0.6"/>
+      <rect x="24" y="48" width="16" height="6" fill="#0078d4" opacity="0.6"/>
+    </symbol>
+    <symbol id="iconFiles" viewBox="0 0 64 64">
+      <path d="M10 18h18l4 4h22v30H10z" fill="#ffa94d" opacity="0.85"/>
+      <rect x="14" y="26" width="38" height="2" fill="#fff" opacity="0.6"/>
+      <rect x="14" y="32" width="38" height="2" fill="#fff" opacity="0.45"/>
+      <rect x="14" y="38" width="30" height="2" fill="#fff" opacity="0.35"/>
+    </symbol>
+    <symbol id="iconAVD" viewBox="0 0 64 64">
+      <rect x="6" y="14" width="52" height="34" rx="2" fill="#b4a7f5" opacity="0.8"/>
+      <rect x="10" y="18" width="44" height="26" fill="#1a1a2e" opacity="0.65"/>
+      <rect x="18" y="52" width="28" height="4" fill="#b4a7f5" opacity="0.6"/>
+      <circle cx="32" cy="31" r="7" fill="#50e6ff" opacity="0.75"/>
+    </symbol>
+    <symbol id="iconSQL" viewBox="0 0 64 64">
+      <ellipse cx="32" cy="14" rx="20" ry="6" fill="#ff6b6b" opacity="0.8"/>
+      <path d="M12 14v36c0 4 9 7 20 7s20-3 20-7V14" fill="#ff6b6b" opacity="0.65"/>
+      <ellipse cx="32" cy="26" rx="20" ry="6" fill="#ff6b6b" opacity="0.4"/>
+      <ellipse cx="32" cy="38" rx="20" ry="6" fill="#ff6b6b" opacity="0.4"/>
+    </symbol>
+    <symbol id="iconLDAP" viewBox="0 0 64 64">
+      <circle cx="32" cy="24" r="12" fill="#ffd700" opacity="0.85"/>
+      <path d="M32 38c-10 0-18 6-18 14v4h36v-4c0-8-8-14-18-14z" fill="#ffd700" opacity="0.75"/>
+      <rect x="40" y="32" width="12" height="18" rx="2" fill="#0d1b2a" opacity="0.4"/>
+      <path d="M46 30v4" stroke="#0d1b2a" stroke-width="2" fill="none" opacity="0.4"/>
+    </symbol>
+    <symbol id="iconApp" viewBox="0 0 64 64">
+      <rect x="10" y="10" width="44" height="44" rx="6" fill="#57d9a3" opacity="0.8"/>
+      <circle cx="22" cy="24" r="4" fill="#fff" opacity="0.9"/>
+      <circle cx="42" cy="24" r="4" fill="#fff" opacity="0.9"/>
+      <circle cx="22" cy="42" r="4" fill="#fff" opacity="0.9"/>
+      <circle cx="42" cy="42" r="4" fill="#fff" opacity="0.9"/>
+    </symbol>
+    <symbol id="iconUser" viewBox="0 0 64 64">
+      <circle cx="32" cy="22" r="10" fill="#50e6ff" opacity="0.85"/>
+      <path d="M12 56c0-11 9-18 20-18s20 7 20 18z" fill="#50e6ff" opacity="0.65"/>
+    </symbol>
+    <symbol id="iconKey" viewBox="0 0 64 64">
+      <circle cx="22" cy="32" r="10" fill="none" stroke="#ffd700" stroke-width="4" opacity="0.9"/>
+      <path d="M30 32h24v6h-6v-6m-4 0v6h-4v-6" stroke="#ffd700" stroke-width="3" fill="none" opacity="0.85"/>
+    </symbol>
+    <symbol id="iconShield" viewBox="0 0 64 64">
+      <path d="M32 8l20 6v14c0 14-8 24-20 28-12-4-20-14-20-28V14z" fill="#b4a7f5" opacity="0.8"/>
+      <path d="M22 32l8 8 14-16" stroke="#fff" stroke-width="4" fill="none" opacity="0.9"/>
+    </symbol>
+  </defs>
+
+  <!-- Background (transparent) -->
+  <rect width="960" height="760" fill="url(#skyBg)"/>
+
+  <!-- Title -->
+  <text x="480" y="36" text-anchor="middle" font-size="20" font-weight="700" fill="#0078d4">Microsoft Entra Domain Services &#8212; Cloud-Only Design</text>
+  <text x="480" y="56" text-anchor="middle" font-size="12" fill="#8892b0">Managed domain in Azure. No on-prem DCs. Entra ID is the identity source of truth.</text>
+
+  <!-- ===== LAYER 1: Identity Source (Entra ID) ===== -->
+  <g id="layer-entra">
+    <rect x="40" y="80" width="880" height="120" rx="14" fill="url(#entraFill)" stroke="#50e6ff" stroke-opacity="0.5" stroke-width="1.5"/>
+    <text x="60" y="102" font-size="11" font-weight="700" fill="#50e6ff" letter-spacing="1">IDENTITY (SOURCE OF TRUTH)</text>
+
+    <use href="#iconCloud" x="80" y="118" width="88" height="56"/>
+    <text x="180" y="138" font-size="18" font-weight="700" fill="#e8eaf0">Microsoft Entra ID</text>
+    <text x="180" y="158" font-size="11" fill="#8892b0">Cloud-native identity platform</text>
+
+    <!-- Chips -->
+    <g id="chips-entra">
+      <g transform="translate(400,130)">
+        <rect width="120" height="32" rx="16" fill="#1a1a2e" stroke="#50e6ff" stroke-opacity="0.4"/>
+        <use href="#iconUser" x="6" y="4" width="24" height="24"/>
+        <text x="36" y="20" font-size="12" fill="#e8eaf0">Users / Groups</text>
+      </g>
+      <g transform="translate(528,130)">
+        <rect width="130" height="32" rx="16" fill="#1a1a2e" stroke="#50e6ff" stroke-opacity="0.4"/>
+        <use href="#iconKey" x="6" y="4" width="24" height="24"/>
+        <text x="36" y="20" font-size="12" fill="#e8eaf0">Password Hashes</text>
+      </g>
+      <g transform="translate(666,130)">
+        <rect width="150" height="32" rx="16" fill="#1a1a2e" stroke="#50e6ff" stroke-opacity="0.4"/>
+        <use href="#iconShield" x="6" y="4" width="24" height="24"/>
+        <text x="36" y="20" font-size="12" fill="#e8eaf0">Conditional Access</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- Arrow: Entra ID -> Managed Domain -->
+  <g id="arrow-sync">
+    <line x1="480" y1="210" x2="480" y2="256" stroke="#50e6ff" stroke-width="2" marker-end="url(#arrow)"/>
+    <rect x="540" y="218" width="260" height="30" rx="4" fill="#1a1a2e" stroke="#50e6ff" stroke-opacity="0.3"/>
+    <text x="670" y="238" text-anchor="middle" font-size="12" fill="#e8eaf0">One-way sync &#183; users + NTLM/Kerberos hashes</text>
+  </g>
+
+  <!-- ===== LAYER 2: Managed Domain ===== -->
+  <g id="layer-managed">
+    <rect x="40" y="270" width="880" height="190" rx="14" fill="url(#dcFill)" stroke="#0078d4" stroke-opacity="0.55" stroke-width="1.5"/>
+    <text x="60" y="292" font-size="11" font-weight="700" fill="#0078d4" letter-spacing="1">AZURE &#8212; MANAGED DOMAIN</text>
+    <text x="60" y="314" font-size="15" font-weight="700" fill="#e8eaf0">aaddscontoso.com</text>
+    <text x="60" y="332" font-size="11" fill="#8892b0">Microsoft-managed. Admin access only via AAD DC Administrators group.</text>
+
+    <!-- VNet dashed container -->
+    <rect x="80" y="348" width="840" height="100" rx="10" fill="none" stroke="#50e6ff" stroke-opacity="0.45" stroke-width="1.5" stroke-dasharray="6 4"/>
+    <text x="100" y="368" font-size="11" font-family="'JetBrains Mono', monospace" fill="#8892b0">VNet 10.0.0.0/16 &#183; subnet 10.0.1.0/24 &#183; DNS: [managed DC IPs]</text>
+
+    <!-- DC 1 -->
+    <g transform="translate(200,376)">
+      <rect width="220" height="60" rx="10" fill="#0d1b2a" stroke="#0078d4" stroke-opacity="0.6"/>
+      <use href="#iconDC" x="10" y="6" width="48" height="48"/>
+      <text x="70" y="26" font-size="14" font-weight="700" fill="#e8eaf0">Managed DC-1</text>
+      <text x="70" y="44" font-size="10" fill="#8892b0">LDAP &#183; Kerberos &#183; NTLM</text>
+    </g>
+    <!-- DC 2 -->
+    <g transform="translate(540,376)">
+      <rect width="220" height="60" rx="10" fill="#0d1b2a" stroke="#0078d4" stroke-opacity="0.6"/>
+      <use href="#iconDC" x="10" y="6" width="48" height="48"/>
+      <text x="70" y="26" font-size="14" font-weight="700" fill="#e8eaf0">Managed DC-2</text>
+      <text x="70" y="44" font-size="10" fill="#8892b0">HA pair &#183; Microsoft-managed</text>
+    </g>
+  </g>
+
+  <!-- Arrow: Managed Domain -> Workloads -->
+  <g id="arrow-join">
+    <line x1="480" y1="470" x2="480" y2="510" stroke="#57d9a3" stroke-width="2" marker-end="url(#arrow)"/>
+    <rect x="540" y="478" width="260" height="30" rx="4" fill="#1a1a2e" stroke="#57d9a3" stroke-opacity="0.3"/>
+    <text x="670" y="498" text-anchor="middle" font-size="12" fill="#e8eaf0">Domain join &#183; Kerberos / LDAP auth</text>
+  </g>
+
+  <!-- ===== LAYER 3: Azure Workloads ===== -->
+  <g id="layer-workloads">
+    <rect x="40" y="524" width="880" height="160" rx="14" fill="url(#wlFill)" stroke="#57d9a3" stroke-opacity="0.5" stroke-width="1.5"/>
+    <text x="60" y="546" font-size="11" font-weight="700" fill="#57d9a3" letter-spacing="1">AZURE WORKLOADS &#8212; JOIN THE MANAGED DOMAIN</text>
+
+    <!-- Row of workload cards -->
+    <g id="workloads">
+      <!-- Azure VMs -->
+      <g transform="translate(60,560)">
+        <rect width="140" height="110" rx="8" fill="#0d1b2a" stroke="#57d9a3" stroke-opacity="0.4"/>
+        <use href="#iconVM" x="50" y="10" width="40" height="40"/>
+        <text x="70" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="#e8eaf0">Azure VMs</text>
+        <text x="70" y="86" text-anchor="middle" font-size="9" fill="#8892b0">Windows / Linux</text>
+        <text x="70" y="98" text-anchor="middle" font-size="9" fill="#8892b0">domain-joined</text>
+      </g>
+      <!-- Azure Files -->
+      <g transform="translate(212,560)">
+        <rect width="140" height="110" rx="8" fill="#0d1b2a" stroke="#57d9a3" stroke-opacity="0.4"/>
+        <use href="#iconFiles" x="50" y="10" width="40" height="40"/>
+        <text x="70" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="#e8eaf0">Azure Files</text>
+        <text x="70" y="86" text-anchor="middle" font-size="9" fill="#8892b0">Kerberos SMB</text>
+      </g>
+      <!-- AVD -->
+      <g transform="translate(364,560)">
+        <rect width="140" height="110" rx="8" fill="#0d1b2a" stroke="#57d9a3" stroke-opacity="0.4"/>
+        <use href="#iconAVD" x="50" y="10" width="40" height="40"/>
+        <text x="70" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="#e8eaf0">AVD</text>
+        <text x="70" y="86" text-anchor="middle" font-size="9" fill="#8892b0">host pools</text>
+      </g>
+      <!-- SQL IaaS -->
+      <g transform="translate(516,560)">
+        <rect width="140" height="110" rx="8" fill="#0d1b2a" stroke="#57d9a3" stroke-opacity="0.4"/>
+        <use href="#iconSQL" x="50" y="10" width="40" height="40"/>
+        <text x="70" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="#e8eaf0">SQL on IaaS</text>
+        <text x="70" y="86" text-anchor="middle" font-size="9" fill="#8892b0">Integrated auth</text>
+      </g>
+      <!-- LoB / LDAP -->
+      <g transform="translate(668,560)">
+        <rect width="140" height="110" rx="8" fill="#0d1b2a" stroke="#57d9a3" stroke-opacity="0.4"/>
+        <use href="#iconLDAP" x="50" y="10" width="40" height="40"/>
+        <text x="70" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="#e8eaf0">LoB Apps</text>
+        <text x="70" y="86" text-anchor="middle" font-size="9" fill="#8892b0">LDAP(S) bind</text>
+      </g>
+      <!-- App Service -->
+      <g transform="translate(820,560)">
+        <rect width="80" height="110" rx="8" fill="#0d1b2a" stroke="#57d9a3" stroke-opacity="0.4"/>
+        <use href="#iconApp" x="20" y="10" width="40" height="40"/>
+        <text x="40" y="70" text-anchor="middle" font-size="11" font-weight="700" fill="#e8eaf0">App Svc</text>
+        <text x="40" y="84" text-anchor="middle" font-size="9" fill="#8892b0">Env. v3</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- ===== Optional block (replica set / LDAPS) ===== -->
+  <g id="layer-optional">
+    <rect x="40" y="700" width="880" height="48" rx="8" fill="url(#optFill)" stroke="#ffd700" stroke-opacity="0.5" stroke-dasharray="6 4"/>
+    <text x="60" y="720" font-size="10" font-weight="700" fill="#ffd700" letter-spacing="1">OPTIONAL &#8212; PRODUCTION HARDENING</text>
+    <text x="60" y="738" font-size="12" fill="#e8eaf0">Replica set in 2nd Azure region (geo-redundancy)   &#183;   Secure LDAP (LDAPS) with CA-signed cert   &#183;   Peer VNets for multi-subscription workloads</text>
+  </g>
+</svg>

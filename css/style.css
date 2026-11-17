@@ -2228,6 +2228,58 @@ body.theme-light .nav-icon-btn { color: var(--text); }
 }
 .impl-step strong { color: var(--text); display: block; margin-bottom: 4px; }
 
+/* ===== ARCHITECTURE SVG FIGURE ===== */
+.arch-figure {
+  margin: 0 0 20px;
+  padding: 16px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.arch-figure img {
+  width: 100%;
+  height: auto;
+  max-height: 600px;
+  object-fit: contain;
+  display: block;
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(13,13,26,0.6), rgba(13,13,26,0.2));
+  padding: 8px;
+}
+body.theme-light .arch-figure img { background: linear-gradient(180deg, rgba(246,248,252,0.9), rgba(246,248,252,0.4)); }
+.arch-figure figcaption {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  padding: 4px 8px;
+  flex-wrap: wrap;
+}
+.arch-figure-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 500;
+  transition: var(--transition);
+}
+.arch-figure-link:hover {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+
 /* ===== ENTRA DS ARCHITECTURE TABS (Chapter 05) ===== */
 .eds-cloud-arch, .eds-hybrid-arch {
   background: linear-gradient(135deg, rgba(0,120,212,0.05), rgba(80,230,255,0.03));
