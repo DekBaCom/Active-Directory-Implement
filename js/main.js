@@ -341,6 +341,7 @@ const SEARCH_INDEX = [
   { title: 'What is Active Directory', hash: '#what-is-ad', keywords: 'ad introduction overview forest domain ou dc gc fsmo gpo schema identity kerberos ldap authentication' },
   { title: 'AD Service Types', hash: '#ad-types', keywords: 'ad ds entra id azure aadds adcs adfs adlds adrms pki certificate federation lightweight rights' },
   { title: 'Windows Server Editions', hash: '#windows-editions', keywords: 'windows server 2025 2022 essentials standard datacenter licensing cal edition comparison functional level' },
+  { title: 'Functional Level Upgrade Guide', hash: '#windows-editions', keywords: 'functional level upgrade dfl ffl raise set-addomainmode set-adforestmode schema rollback domain mode forest mode' },
   { title: 'Implementation Guide', hash: '#implementation', keywords: 'install deploy powershell promote domain controller forest install-addsforest planning ou assessment' },
   { title: 'Architecture Design', hash: '#architecture', keywords: 'architecture small medium enterprise hybrid cloud design single multi forest empty root fsmo placement' },
   { title: 'Cost Calculator', hash: '#calculator', keywords: 'cost price calculator estimate budget license hardware msrp software assurance' },

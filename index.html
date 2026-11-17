@@ -558,6 +558,141 @@
           <div class="fl-features">First new FL since 2016. 32-bit DNT upgrade, dMSA support, Kerberos PKINIT algorithm agility, improved krbtgt management, LDAP channel binding enforced.</div>
         </div>
       </div>
+
+      <!-- FUNCTIONAL LEVEL UPGRADE GUIDE -->
+      <div class="fl-upgrade">
+        <h3 class="subsection-title">How to Upgrade Functional Level</h3>
+        <p class="fl-intro">
+          Raising the <strong>Domain Functional Level (DFL)</strong> or <strong>Forest Functional Level (FFL)</strong> unlocks newer AD features but is a one-time directional change. Plan and validate before raising.
+        </p>
+
+        <div class="fl-rules">
+          <div class="fl-rule">
+            <div class="fl-rule-icon">&#9888;&#65039;</div>
+            <div>
+              <h4>Prerequisites</h4>
+              <ul>
+                <li><strong>All DCs</strong> in the domain (for DFL) or forest (for FFL) must run the target OS <strong>or newer</strong>.</li>
+                <li>Raise the <strong>DFL first</strong> on every domain, then the <strong>FFL</strong> for the forest.</li>
+                <li>Replication must be healthy. Run <code>repadmin /replsummary</code> before raising.</li>
+                <li>Perform a <strong>System State backup</strong> of all DCs beforehand.</li>
+                <li>Verify no legacy DCs (NT4, 2003, 2008/R2) exist — use <code>Get-ADDomainController -Filter *</code>.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="fl-rule">
+            <div class="fl-rule-icon">&#128275;</div>
+            <div>
+              <h4>Rollback Rules</h4>
+              <ul>
+                <li>DFL/FFL raises are generally <strong>one-way</strong>.</li>
+                <li><strong>Rollback is possible</strong> only from <strong>WS 2008 R2 or higher</strong> back down — and only if AD Recycle Bin and other features depending on that level have <em>not</em> been enabled.</li>
+                <li>You <strong>cannot</strong> lower below WS 2008 R2 once raised.</li>
+                <li>Once a feature like AD Recycle Bin is enabled, the forest FL becomes locked.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="fl-rule">
+            <div class="fl-rule-icon">&#128161;</div>
+            <div>
+              <h4>Best Practices</h4>
+              <ul>
+                <li>Wait until <strong>all DCs are stable</strong> on the new OS for at least a few weeks before raising.</li>
+                <li>Raise levels <strong>during a maintenance window</strong>.</li>
+                <li>Document the pre/post state (schema version, DFL, FFL) in a change record.</li>
+                <li>After raising to <strong>WS 2025 FL</strong>, you can no longer add DCs running older OS versions.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span>PowerShell &mdash; Check Current Functional Levels</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre><code><span class="comment"># Check current Domain Functional Level</span>
+Get-ADDomain | Select-Object DNSRoot, DomainMode
+
+<span class="comment"># Check current Forest Functional Level</span>
+Get-ADForest | Select-Object Name, ForestMode
+
+<span class="comment"># Check OS version of every Domain Controller</span>
+Get-ADDomainController -Filter * |
+  Select-Object Name, OperatingSystem, OperatingSystemVersion, Site |
+  Sort-Object Name
+
+<span class="comment"># Verify replication health</span>
+repadmin /replsummary
+repadmin /showrepl * /csv | ConvertFrom-Csv | Where-Object {$_.'Number of Failures' -gt 0}</code></pre>
+        </div>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span>PowerShell &mdash; Raise Domain &amp; Forest Functional Level</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre><code><span class="comment"># Available DomainMode / ForestMode values (WindowsThreshold = WS 2016):
+#   Windows2008R2Domain    / Windows2008R2Forest
+#   Windows2012Domain      / Windows2012Forest
+#   Windows2012R2Domain    / Windows2012R2Forest
+#   WindowsThreshold       / WindowsThreshold       (WS 2016)
+#   Windows2025Domain      / Windows2025Forest      (WS 2025)</span>
+
+<span class="comment"># Step 1: Raise Domain Functional Level (do this for EACH domain)</span>
+Set-ADDomainMode `
+  -Identity "contoso.com" `
+  -DomainMode Windows2025Domain `
+  -Confirm:$false
+
+<span class="comment"># Step 2: Raise Forest Functional Level (only after ALL domains are at target DFL)</span>
+Set-ADForestMode `
+  -Identity "contoso.com" `
+  -ForestMode Windows2025Forest `
+  -Confirm:$false
+
+<span class="comment"># Step 3: Verify the change</span>
+Get-ADDomain | Select-Object DNSRoot, DomainMode
+Get-ADForest | Select-Object Name, ForestMode
+
+<span class="comment"># Step 4 (optional): Enable features unlocked by the new FL
+# AD Recycle Bin requires Forest FL 2008 R2+ and is a ONE-WAY enablement</span>
+Enable-ADOptionalFeature `
+  -Identity "Recycle Bin Feature" `
+  -Scope ForestOrConfigurationSet `
+  -Target "contoso.com" `
+  -Confirm:$false</code></pre>
+        </div>
+
+        <div class="info-box fl-matrix-box">
+          <div class="info-icon">&#128202;</div>
+          <div class="info-content">
+            <h4>Upgrade Path Matrix</h4>
+            <div class="fl-matrix-wrapper">
+              <table class="fl-matrix">
+                <thead>
+                  <tr>
+                    <th>Current FL</th>
+                    <th>Min DC OS Required</th>
+                    <th>Can Raise To</th>
+                    <th>Rollback</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>Win 2008 R2</td><td>WS 2008 R2+</td><td>2012, 2012 R2, 2016, 2025</td><td class="check">Possible</td></tr>
+                  <tr><td>Win 2012</td><td>WS 2012+</td><td>2012 R2, 2016, 2025</td><td class="check">Possible</td></tr>
+                  <tr><td>Win 2012 R2</td><td>WS 2012 R2+</td><td>2016, 2025</td><td class="check">Possible</td></tr>
+                  <tr><td>Win 2016</td><td>WS 2016+</td><td>2025</td><td class="check">Possible</td></tr>
+                  <tr><td class="fl-current-row">Win 2025</td><td>WS 2025 only</td><td>&mdash; latest &mdash;</td><td class="cross">Not supported</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="fl-matrix-note"><strong>Note:</strong> Rollback is only supported via PowerShell (<code>Set-ADDomainMode</code> / <code>Set-ADForestMode</code>) and only if forest-wide features that require the higher FL have not been enabled (e.g. AD Recycle Bin, PAM trust, dMSA).</p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
