@@ -10,6 +10,9 @@
 </head>
 <body>
 
+<!-- ===== SCROLL PROGRESS BAR ===== -->
+<div class="scroll-progress" id="scrollProgress"></div>
+
 <!-- ===== NAVIGATION ===== -->
 <nav class="navbar" id="navbar">
   <div class="nav-container">
@@ -29,9 +32,31 @@
       <li><a href="#calculator" class="nav-link">Cost Calc</a></li>
       <li><a href="#best-practices" class="nav-link">Best Practices</a></li>
       <li><a href="#faq" class="nav-link">FAQ</a></li>
+      <li class="nav-actions">
+        <button class="nav-icon-btn" id="searchBtn" aria-label="Search (Ctrl+K)" title="Search (Ctrl+K)">&#128269;</button>
+        <button class="nav-icon-btn" id="themeToggle" aria-label="Toggle theme" title="Toggle light/dark theme">&#9790;</button>
+      </li>
     </ul>
   </div>
 </nav>
+
+<!-- ===== SEARCH MODAL ===== -->
+<div class="search-modal" id="searchModal" aria-hidden="true">
+  <div class="search-backdrop" id="searchBackdrop"></div>
+  <div class="search-dialog" role="dialog" aria-label="Search">
+    <div class="search-input-row">
+      <span class="search-icon">&#128269;</span>
+      <input type="text" id="searchInput" placeholder="Search guide (e.g., FSMO, GPO, Kerberos, cost)..." autocomplete="off" />
+      <kbd class="search-esc">ESC</kbd>
+    </div>
+    <div class="search-results" id="searchResults"></div>
+    <div class="search-footer">
+      <span><kbd>&uarr;</kbd><kbd>&darr;</kbd> navigate</span>
+      <span><kbd>&crarr;</kbd> go</span>
+      <span><kbd>Ctrl</kbd>+<kbd>K</kbd> toggle</span>
+    </div>
+  </div>
+</div>
 
 <!-- ===== HERO ===== -->
 <section class="hero" id="home">
@@ -49,16 +74,16 @@
     </p>
     <div class="hero-stats">
       <div class="stat-item">
-        <div class="stat-num" data-target="95">0</div>
-        <div class="stat-label">% Enterprise Adoption</div>
+        <div class="stat-num" data-target="95" data-suffix="%">0</div>
+        <div class="stat-label">Enterprise Adoption</div>
       </div>
       <div class="stat-item">
-        <div class="stat-num" data-target="10">0</div>
-        <div class="stat-label">+ AD Service Types</div>
+        <div class="stat-num" data-target="10" data-suffix="+">0</div>
+        <div class="stat-label">AD Service Types</div>
       </div>
       <div class="stat-item">
-        <div class="stat-num" data-target="500">0</div>
-        <div class="stat-label">M+ Users Worldwide</div>
+        <div class="stat-num" data-target="500" data-suffix="M+">0</div>
+        <div class="stat-label">Users Worldwide</div>
       </div>
     </div>
     <div class="hero-actions">
@@ -168,10 +193,17 @@
           </div>
         </div>
         <div class="timeline-item">
-          <div class="timeline-year">2024</div>
+          <div class="timeline-year">2023</div>
           <div class="timeline-content">
             <h4>Microsoft Entra ID</h4>
             <p>Azure Active Directory rebranded to Microsoft Entra ID — cloud-native identity platform at scale.</p>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-year">2024</div>
+          <div class="timeline-content">
+            <h4>Windows Server 2025</h4>
+            <p>First new AD DS schema update since 2016. Hotpatching for AD servers, dMSA (delegated Managed Service Accounts), 32-bit DNT upgrade, LDAP channel binding enforced by default, SMB over QUIC, improved NTDS performance.</p>
           </div>
         </div>
       </div>
@@ -263,7 +295,7 @@
               <li>&#9989; MFA / Passwordless auth</li>
               <li>&#9989; Identity Protection (risk-based)</li>
               <li>&#9989; Privileged Identity Management (PIM)</li>
-              <li>&#9989; Azure AD Connect for hybrid sync</li>
+              <li>&#9989; Microsoft Entra Connect for hybrid sync</li>
               <li>&#9989; B2B / B2C scenarios</li>
             </ul>
             <div class="note-box">
@@ -275,7 +307,7 @@
               <div class="sd-title">Hybrid Identity Architecture</div>
               <div class="hybrid-flow">
                 <div class="hybrid-box on-prem-box">&#128187; On-Prem AD DS</div>
-                <div class="hybrid-arrow">&#8644; Azure AD Connect</div>
+                <div class="hybrid-arrow">&#8644; Microsoft Entra Connect</div>
                 <div class="hybrid-box cloud-box">&#9729; Microsoft Entra ID</div>
               </div>
               <div class="hybrid-apps">
@@ -439,26 +471,29 @@
         <thead>
           <tr>
             <th>Feature</th>
-            <th class="col-essentials">Essentials 2022</th>
-            <th class="col-standard">Standard 2022</th>
-            <th class="col-datacenter">Datacenter 2022</th>
+            <th class="col-essentials">Essentials 2025</th>
+            <th class="col-standard">Standard 2025</th>
+            <th class="col-datacenter">Datacenter 2025</th>
           </tr>
         </thead>
         <tbody>
           <tr><td>Max Processors</td><td>1</td><td>Unlimited</td><td>Unlimited</td></tr>
-          <tr><td>Max RAM</td><td>128 GB</td><td>24 TB</td><td>24 TB</td></tr>
+          <tr><td>Max RAM</td><td>128 GB</td><td>48 TB</td><td>48 TB</td></tr>
           <tr><td>User Limit</td><td>25 users</td><td>Unlimited</td><td>Unlimited</td></tr>
           <tr><td>Domain Controller</td><td class="check">&#9989;</td><td class="check">&#9989;</td><td class="check">&#9989;</td></tr>
           <tr><td>CALs Required</td><td class="cross">&#10060; No</td><td class="check">&#9989; Yes</td><td class="check">&#9989; Yes</td></tr>
           <tr><td>VMs per License</td><td>1 VM</td><td>2 VMs</td><td>Unlimited</td></tr>
           <tr><td>Hyper-V</td><td class="cross">&#10060;</td><td class="check">&#9989;</td><td class="check">&#9989;</td></tr>
+          <tr><td>Hotpatching (AD/OS)</td><td class="cross">&#10060;</td><td class="check">Add-on</td><td class="check">&#9989; Incl.</td></tr>
           <tr><td>Storage Spaces Direct</td><td class="cross">&#10060;</td><td class="cross">&#10060;</td><td class="check">&#9989;</td></tr>
           <tr><td>Shielded VMs</td><td class="cross">&#10060;</td><td class="check">&#9989;</td><td class="check">&#9989;</td></tr>
           <tr><td>Storage Replica</td><td class="cross">&#10060;</td><td class="check">Limited</td><td class="check">&#9989;</td></tr>
+          <tr><td>SMB over QUIC</td><td class="cross">&#10060;</td><td class="check">&#9989;</td><td class="check">&#9989;</td></tr>
           <tr><td>Network Controller</td><td class="cross">&#10060;</td><td class="cross">&#10060;</td><td class="check">&#9989;</td></tr>
-          <tr><td>Approx. License Price</td><td class="price">~$501</td><td class="price">~$1,069</td><td class="price">~$6,155</td></tr>
+          <tr><td>Approx. License Price</td><td class="price">~$581</td><td class="price">~$1,176</td><td class="price">~$6,771</td></tr>
         </tbody>
       </table>
+      <p class="table-note">Pricing: Microsoft MSRP, Nov 2024 (10% increase from WS 2022). Windows Server 2022 remains in mainstream support through Oct 2026.</p>
     </div>
 
     <div class="edition-cards">
@@ -514,9 +549,13 @@
           <div class="fl-ver">Win Server 2016</div>
           <div class="fl-features">Privileged Access Management (PAM) forest trust</div>
         </div>
-        <div class="fl-item fl-current">
+        <div class="fl-item">
           <div class="fl-ver">Win Server 2019 / 2022</div>
-          <div class="fl-features">No new FL features yet; inherits all 2016 features</div>
+          <div class="fl-features">No new FL features; inherits all 2016 features</div>
+        </div>
+        <div class="fl-item fl-current">
+          <div class="fl-ver">Win Server 2025</div>
+          <div class="fl-features">First new FL since 2016. 32-bit DNT upgrade, dMSA support, Kerberos PKINIT algorithm agility, improved krbtgt management, LDAP channel binding enforced.</div>
         </div>
       </div>
     </div>
@@ -731,7 +770,7 @@ repadmin /showrepl</code></pre>
             <div class="step">
               <div class="step-icon">&#9729;</div>
               <div class="step-text">
-                <h4>Install Azure AD Connect</h4>
+                <h4>Install Microsoft Entra Connect</h4>
                 <p>Sync on-premises identities to Microsoft Entra ID. Choose sync method: Password Hash Sync, Pass-Through Auth, or Federation.</p>
               </div>
             </div>
@@ -921,7 +960,7 @@ repadmin /showrepl</code></pre>
                     <div class="arch-dc-mini">DC-02</div>
                   </div>
                 </div>
-                <div class="arch-connect">&#8645; Azure AD Connect</div>
+                <div class="arch-connect">&#8645; Microsoft Entra Connect</div>
               </div>
               <div class="hybrid-cloud">
                 <div class="hybrid-section-label">Microsoft Cloud</div>
@@ -937,7 +976,7 @@ repadmin /showrepl</code></pre>
           <div class="arch-specs">
             <h4>Hybrid Components</h4>
             <ul>
-              <li><strong>Azure AD Connect:</strong> Identity sync (PHS recommended)</li>
+              <li><strong>Microsoft Entra Connect:</strong> Identity sync (PHS recommended)</li>
               <li><strong>Entra ID P2:</strong> PIM, Identity Protection, Access Reviews</li>
               <li><strong>Conditional Access:</strong> Risk-based MFA policies</li>
               <li><strong>Hybrid Join:</strong> Devices registered in both AD and Entra ID</li>
@@ -1140,7 +1179,10 @@ repadmin /showrepl</code></pre>
           <p>&#9888;&#65039; <em>Estimates are based on MSRP pricing. Actual costs vary by region, volume licensing agreements, and negotiated discounts. Software Assurance may add 25-29% annually but includes upgrade rights.</em></p>
         </div>
 
-        <button class="btn btn-primary" onclick="downloadEstimate()">&#128196; Download Estimate</button>
+        <div class="export-group">
+          <button class="btn btn-primary" onclick="downloadEstimate('txt')">&#128196; Download TXT</button>
+          <button class="btn btn-secondary" onclick="downloadEstimate('csv')">&#128202; Export CSV</button>
+        </div>
       </div>
     </div>
 
@@ -1343,7 +1385,7 @@ repadmin /showrepl</code></pre>
           <span class="faq-icon">+</span>
         </div>
         <div class="faq-answer">
-          <p>AD DS is the traditional on-premises directory service using Kerberos/NTLM, LDAP, Group Policy, and OUs. <strong>Microsoft Entra ID</strong> is a cloud-based identity platform using OAuth 2.0, OIDC, SAML 2.0 — built for internet-scale and SaaS applications. They are complementary, not interchangeable. Most enterprises use <strong>hybrid identity</strong>: AD DS on-premises synced to Entra ID via Azure AD Connect.</p>
+          <p>AD DS is the traditional on-premises directory service using Kerberos/NTLM, LDAP, Group Policy, and OUs. <strong>Microsoft Entra ID</strong> is a cloud-based identity platform using OAuth 2.0, OIDC, SAML 2.0 — built for internet-scale and SaaS applications. They are complementary, not interchangeable. Most enterprises use <strong>hybrid identity</strong>: AD DS on-premises synced to Entra ID via Microsoft Entra Connect.</p>
         </div>
       </div>
 
@@ -1388,6 +1430,46 @@ repadmin /showrepl</code></pre>
               <tr><td>49152-65535</td><td>TCP</td><td>RPC Dynamic Ports</td></tr>
             </table>
           </div>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFAQ(this)">
+          <span>Is LDAP channel binding / LDAP signing mandatory?</span>
+          <span class="faq-icon">+</span>
+        </div>
+        <div class="faq-answer">
+          <p><strong>Yes — as of March 2024</strong>, Microsoft enforces <strong>LDAP channel binding</strong> and <strong>LDAP signing</strong> by default on all supported DCs via cumulative updates. On Windows Server 2025 this is enforced out of the box. Legacy apps using unencrypted simple binds will break. Audit first using Event IDs <code>3039</code> (unsigned LDAP), <code>3040</code> (unprotected simple bind), and <code>3041</code> (channel binding). Remediate by enabling LDAPS (port 636) or STARTTLS before enforcement.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFAQ(this)">
+          <span>Do I still need to download LAPS separately?</span>
+          <span class="faq-icon">+</span>
+        </div>
+        <div class="faq-answer">
+          <p><strong>No. Windows LAPS is now built into Windows 10/11 and Windows Server 2019+</strong> (via April 2023 updates). The legacy "Microsoft LAPS" MSI is deprecated. The new Windows LAPS supports both AD and Entra ID as the backend, policy via GPO or Intune, and includes automatic password rotation after use. Enable with GPO under <code>Computer Configuration → Policies → Administrative Templates → System → LAPS</code>.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFAQ(this)">
+          <span>How do I migrate from Windows Server 2016/2019 to 2025?</span>
+          <span class="faq-icon">+</span>
+        </div>
+        <div class="faq-answer">
+          <p>Follow the same pattern as other DC upgrades: (1) Verify forest/domain functional level is at least WS 2016, (2) Add new <strong>Windows Server 2025</strong> DCs via <code>Install-ADDSDomainController</code>, (3) Wait for full replication, verify with <code>repadmin /replsummary</code>, (4) Transfer FSMO roles with <code>Move-ADDirectoryServerOperationMasterRole</code>, (5) Demote old DCs with <code>Uninstall-ADDSDomainController</code>, (6) Raise functional level to WS 2025 to unlock dMSA, 32-bit DNT, and PKINIT algorithm agility. <strong>Warning:</strong> Once raised to WS 2025 FL, you cannot add DCs running older OS versions.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFAQ(this)">
+          <span>What are dMSAs (delegated Managed Service Accounts)?</span>
+          <span class="faq-icon">+</span>
+        </div>
+        <div class="faq-answer">
+          <p>Introduced in <strong>Windows Server 2025</strong>, delegated Managed Service Accounts are the successor to traditional service accounts and gMSAs. They defend against <strong>Kerberoasting</strong> by binding the account to specific machine identities — only designated machines can authenticate. Passwords are machine-generated, auto-rotated, and never known to humans. Migrate existing service accounts with <code>Start-ADServiceAccountMigration</code>.</p>
         </div>
       </div>
 
@@ -1467,13 +1549,13 @@ repadmin /showrepl</code></pre>
           <li>AD LDS (Lightweight Directory)</li>
           <li>AD RMS (Rights Management)</li>
           <li>Microsoft Entra ID</li>
-          <li>Azure AD Connect</li>
+          <li>Microsoft Entra Connect</li>
         </ul>
       </div>
     </div>
     <div class="footer-bottom">
-      <p>&copy; 2024 AD Implement Guide. Built for GitHub Pages.</p>
-      <p>Information based on Windows Server 2022 & Microsoft Entra ID documentation.</p>
+      <p>&copy; <span id="copyrightYear">2026</span> AD Implement Guide. Built for GitHub Pages.</p>
+      <p>Information based on Windows Server 2025 & Microsoft Entra ID documentation.</p>
       <div class="footer-contributor">
         <span>&#128100; Contributed by <strong>Mr. Abdulloh Etaeluengoh</strong></span>
         <span class="footer-sep">|</span>

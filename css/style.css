@@ -1333,3 +1333,233 @@ input[type="range"]::-webkit-slider-thumb {
   .hero-actions { flex-direction: column; }
   .hero-actions .btn { text-align: center; justify-content: center; }
 }
+
+/* ===== LIGHT THEME ===== */
+body.theme-light {
+  --bg: #f6f8fc;
+  --bg2: #ffffff;
+  --surface: #ffffff;
+  --surface2: #eef2f8;
+  --border: rgba(0,30,80,0.1);
+  --text: #0d1b2a;
+  --text-muted: #556179;
+  --shadow: 0 8px 32px rgba(0,120,212,0.08);
+  --shadow-lg: 0 20px 60px rgba(0,30,80,0.12);
+}
+body.theme-light .navbar { background: rgba(255,255,255,0.85); }
+body.theme-light code { background: rgba(0,120,212,0.08); color: var(--primary-dark); }
+body.theme-light .hero-bg { opacity: 0.4; }
+body.theme-light .particle { background: var(--primary); }
+body.theme-light pre code { background: #1a1a2e; color: #e8eaf0; }
+body.theme-light .code-block pre { background: #1a1a2e; }
+body.theme-light .nav-icon-btn { color: var(--text); }
+
+/* ===== SCROLL PROGRESS BAR ===== */
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0%;
+  height: 3px;
+  background: var(--gradient);
+  z-index: 200;
+  transition: width 0.1s linear;
+  box-shadow: 0 0 10px rgba(80,230,255,0.4);
+}
+
+/* ===== NAV ACTION BUTTONS ===== */
+.nav-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: 12px;
+  align-items: center;
+}
+.nav-icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.nav-icon-btn:hover {
+  background: var(--surface2);
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+
+/* ===== SEARCH MODAL ===== */
+.search-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: none;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 15vh;
+}
+.search-modal.open { display: flex; }
+.search-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.search-dialog {
+  position: relative;
+  width: min(640px, 92vw);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  animation: searchPop 0.18s ease-out;
+}
+@keyframes searchPop {
+  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.search-input-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.search-icon { font-size: 1.1rem; opacity: 0.7; }
+.search-input-row input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-size: 1rem;
+  font-family: inherit;
+}
+.search-esc, .search-footer kbd {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+}
+.search-results {
+  max-height: 50vh;
+  overflow-y: auto;
+  padding: 8px;
+}
+.search-result {
+  display: block;
+  padding: 10px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: var(--transition);
+  color: var(--text);
+}
+.search-result:hover, .search-result.active {
+  background: var(--surface2);
+  color: var(--accent);
+}
+.search-result-title { font-weight: 600; font-size: 0.95rem; }
+.search-result-section { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+.search-result-section .match { color: var(--accent); }
+.search-empty { padding: 32px; text-align: center; color: var(--text-muted); }
+.search-footer {
+  display: flex;
+  gap: 16px;
+  padding: 10px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--bg2);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+/* ===== TABLE NOTE ===== */
+.table-note {
+  margin-top: 12px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-style: italic;
+  text-align: center;
+}
+
+/* ===== CSV EXPORT BUTTON ===== */
+.export-group {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.export-group .btn { flex: 1; min-width: 140px; justify-content: center; }
+.btn-secondary {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover {
+  background: var(--primary);
+  color: white;
+  transform: translateY(-2px);
+}
+
+/* ===== PRINT STYLES ===== */
+@media print {
+  .navbar, .scroll-progress, .back-to-top, .search-modal,
+  .hero-bg, .hero-particles, .nav-actions,
+  .hero-actions, .copy-btn, .export-group,
+  .faq-icon { display: none !important; }
+
+  body {
+    background: white !important;
+    color: #000 !important;
+    font-size: 11pt;
+    line-height: 1.4;
+  }
+
+  .section { padding: 20pt 0 !important; page-break-inside: avoid; }
+  .hero { min-height: auto; padding: 40pt 20pt !important; background: white !important; }
+  .hero-title, .section-title { color: #000 !important; page-break-after: avoid; }
+  .gradient-text { -webkit-text-fill-color: #0078d4 !important; color: #0078d4 !important; }
+
+  .card, .fl-item, .bp-category, .edition-card,
+  .fsmo-card, .arch-specs, .lm-card, .resource-card {
+    background: white !important;
+    color: #000 !important;
+    border: 1px solid #ccc !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+  }
+
+  .comparison-table { border: 1px solid #000; }
+  .comparison-table th, .comparison-table td {
+    background: white !important;
+    color: #000 !important;
+    border: 1px solid #999 !important;
+  }
+
+  .tab-content { display: block !important; }
+  .tabs-nav { display: none !important; }
+
+  .faq-answer { display: block !important; max-height: none !important; opacity: 1 !important; }
+
+  .code-block { page-break-inside: avoid; border: 1px solid #ccc; }
+  pre, pre code { background: #f4f4f4 !important; color: #000 !important; font-size: 9pt; }
+
+  a { color: #0078d4 !important; text-decoration: underline; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 9pt; color: #666; }
+
+  .footer-contributor a::after { content: none; }
+}
+@media (max-width: 768px) {
+  .nav-actions { margin-left: 0; margin-top: 8px; justify-content: center; }
+}
