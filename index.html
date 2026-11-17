@@ -975,6 +975,191 @@ Enable-ADOptionalFeature `
           </div>
         </div>
       </div>
+
+      <!-- ===== LONG-HAUL UPGRADE PATH: WS 2008 R2 -> WS 2025 ===== -->
+      <div class="upgrade-path" id="upgrade-path">
+        <h3 class="subsection-title">Long-Haul Upgrade Path: Windows Server 2008 R2 &rarr; Windows Server 2025</h3>
+        <p class="fl-intro">
+          You <strong>cannot</strong> add a Windows Server 2025 domain controller directly to a Windows Server 2008 R2 forest. Microsoft enforces a <strong>minimum Forest Functional Level of Windows Server 2016</strong> before any WS 2025 DC can join. The migration is therefore two hops: lift to WS 2016/2019/2022 first, then jump to WS 2025.
+        </p>
+
+        <div class="schema-ref">
+          <h4>AD Schema Versions (objectVersion)</h4>
+          <div class="schema-grid">
+            <div class="schema-cell"><span class="schema-ver">47</span><span class="schema-os">WS 2008 R2</span></div>
+            <div class="schema-cell"><span class="schema-ver">56</span><span class="schema-os">WS 2012</span></div>
+            <div class="schema-cell"><span class="schema-ver">69</span><span class="schema-os">WS 2012 R2</span></div>
+            <div class="schema-cell"><span class="schema-ver">87</span><span class="schema-os">WS 2016</span></div>
+            <div class="schema-cell"><span class="schema-ver">88</span><span class="schema-os">WS 2019 / 2022</span></div>
+            <div class="schema-cell current"><span class="schema-ver">92</span><span class="schema-os">WS 2025</span></div>
+          </div>
+          <p class="fl-matrix-note">Check with: <code>Get-ADObject (Get-ADRootDSE).schemaNamingContext -Properties objectVersion | Select objectVersion</code></p>
+        </div>
+
+        <h4 class="upgrade-table-title">Step-by-Step Upgrade Path</h4>
+        <div class="fl-matrix-wrapper">
+          <table class="fl-matrix upgrade-steps">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Phase</th>
+                <th>Action</th>
+                <th>Schema After</th>
+                <th>FL After</th>
+                <th>Key Commands</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="phase-header"><td colspan="6"><strong>HOP 1 &mdash; Lift the forest to WS 2016 FL</strong></td></tr>
+              <tr>
+                <td>1</td><td>Assess</td>
+                <td>Confirm health of 2008 R2 forest: replication, DNS, FSMO, backups.</td>
+                <td>47</td><td>2008 R2</td>
+                <td><code>repadmin /replsummary</code><br><code>dcdiag /c /e</code></td>
+              </tr>
+              <tr>
+                <td>2</td><td>Prep</td>
+                <td>Backup every DC (System State). Document FSMO. <strong>Migrate SYSVOL from FRS to DFSR</strong> if not already (WS 2016+ requires DFSR).</td>
+                <td>47</td><td>2008 R2</td>
+                <td><code>dfsrmig /GetGlobalState</code><br><code>dfsrmig /SetGlobalState 3</code></td>
+              </tr>
+              <tr>
+                <td>3</td><td>Schema prep</td>
+                <td>Run <code>adprep</code> on a WS 2016/2019/2022 ISO (or let the first new DC auto-run it).</td>
+                <td>87 &rarr; 88</td><td>2008 R2</td>
+                <td><code>adprep /forestprep</code><br><code>adprep /domainprep</code></td>
+              </tr>
+              <tr>
+                <td>4</td><td>Introduce</td>
+                <td>Provision new <strong>WS 2019 or 2022</strong> DCs. Install AD DS role, promote as additional DCs. Wait for replication to settle.</td>
+                <td>88</td><td>2008 R2</td>
+                <td><code>Install-ADDSDomainController</code><br><code>repadmin /showrepl</code></td>
+              </tr>
+              <tr>
+                <td>5</td><td>Transfer</td>
+                <td>Transfer all 5 FSMO roles to a WS 2019/2022 DC. Promote at least one new DC to Global Catalog in every site.</td>
+                <td>88</td><td>2008 R2</td>
+                <td><code>Move-ADDirectoryServerOperationMasterRole</code></td>
+              </tr>
+              <tr>
+                <td>6</td><td>Decommission</td>
+                <td>Demote every WS 2008 R2 DC. Remove cleanly; use metadata cleanup only if you have a failed DC.</td>
+                <td>88</td><td>2008 R2</td>
+                <td><code>Uninstall-ADDSDomainController</code></td>
+              </tr>
+              <tr>
+                <td>7</td><td>Raise FL</td>
+                <td>Raise Domain FL to 2016, then Forest FL to 2016. <strong>One-way</strong>.</td>
+                <td>88</td><td class="check">2016</td>
+                <td><code>Set-ADDomainMode -DomainMode WindowsThreshold</code><br><code>Set-ADForestMode -ForestMode WindowsThreshold</code></td>
+              </tr>
+              <tr class="phase-header"><td colspan="6"><strong>HOP 2 &mdash; Add WS 2025 and finish</strong></td></tr>
+              <tr>
+                <td>8</td><td>Schema prep</td>
+                <td>Run <code>adprep</code> from the WS 2025 media (or let the first WS 2025 DC auto-run it on promotion).</td>
+                <td>92</td><td>2016</td>
+                <td><code>adprep /forestprep</code><br><code>adprep /domainprep</code></td>
+              </tr>
+              <tr>
+                <td>9</td><td>Introduce</td>
+                <td>Provision WS 2025 DCs. Promote into the existing domain as additional DCs. Replication validates.</td>
+                <td>92</td><td>2016</td>
+                <td><code>Install-ADDSDomainController</code></td>
+              </tr>
+              <tr>
+                <td>10</td><td>Transfer</td>
+                <td>Move FSMO roles to a WS 2025 DC. Ensure GC in every site.</td>
+                <td>92</td><td>2016</td>
+                <td><code>Move-ADDirectoryServerOperationMasterRole</code></td>
+              </tr>
+              <tr>
+                <td>11</td><td>Decommission</td>
+                <td>Demote WS 2019/2022 interim DCs.</td>
+                <td>92</td><td>2016</td>
+                <td><code>Uninstall-ADDSDomainController</code></td>
+              </tr>
+              <tr>
+                <td>12</td><td>Raise FL</td>
+                <td>Raise DFL then FFL to <strong>Windows Server 2025</strong>. Unlocks dMSA, Kerberos PKINIT algorithm agility, 32-bit DNT upgrade.</td>
+                <td>92</td><td class="check">2025</td>
+                <td><code>Set-ADDomainMode -DomainMode Windows2025Domain</code><br><code>Set-ADForestMode -ForestMode Windows2025Forest</code></td>
+              </tr>
+              <tr>
+                <td>13</td><td>Post-FL</td>
+                <td>Enable features gated on FL 2025: migrate service accounts to <strong>dMSA</strong>, retire remaining krbtgt RC4, enforce LDAP channel binding where not already.</td>
+                <td>92</td><td class="fl-current-row">2025</td>
+                <td><code>Start-ADServiceAccountMigration</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span>PowerShell &mdash; one-shot verifications between hops</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre><code><span class="comment"># Current FL</span>
+Get-ADDomain  | Select-Object DNSRoot, DomainMode
+Get-ADForest  | Select-Object Name, ForestMode
+
+<span class="comment"># Current schema version (should be 47 -&gt; 88 -&gt; 92)</span>
+Get-ADObject (Get-ADRootDSE).schemaNamingContext -Properties objectVersion |
+  Select-Object objectVersion
+
+<span class="comment"># DC inventory</span>
+Get-ADDomainController -Filter * |
+  Select-Object Name, OperatingSystem, OperatingSystemVersion, Site |
+  Sort-Object Name
+
+<span class="comment"># FSMO + GC status</span>
+netdom query fsmo
+Get-ADDomainController -Filter {IsGlobalCatalog -eq $true} | Select-Object Name, Site
+
+<span class="comment"># Replication health (MUST be clean before every hop)</span>
+repadmin /replsummary
+repadmin /showrepl * /csv | ConvertFrom-Csv |
+  Where-Object {$_.'Number of Failures' -gt 0}
+
+<span class="comment"># SYSVOL on DFSR? (required before leaving 2008 R2)</span>
+dfsrmig /GetGlobalState</code></pre>
+        </div>
+
+        <div class="info-box upgrade-gotchas">
+          <div class="info-icon">&#9888;&#65039;</div>
+          <div class="info-content">
+            <h4>Gotchas on this path</h4>
+            <ul>
+              <li><strong>FRS &rarr; DFSR</strong> is mandatory before leaving 2008 R2. WS 2016+ cannot be promoted into a domain still using FRS for SYSVOL.</li>
+              <li><strong>Why not go straight to WS 2025?</strong> WS 2025 DCs require Forest FL &ge; 2016. You cannot raise FL to 2016 while 2008 R2 DCs exist. Thus the interim WS 2019/2022 hop.</li>
+              <li><strong>Can you skip WS 2019/2022 entirely?</strong> Only if you can obtain and use <strong>WS 2016</strong> as the intermediate (still supported for schema prep but out of mainstream support). WS 2019/2022 is the pragmatic choice in 2026.</li>
+              <li><strong>Enable AD Recycle Bin</strong> only <em>after</em> you reach your final FL &mdash; enabling it is IRREVERSIBLE and locks the forest FL.</li>
+              <li><strong>Entra Connect</strong>: if hybrid, pre-upgrade to the latest Entra Connect v2.x (requires SQL Server 2019+ / Server 2016+). Older AAD Sync will stop syncing.</li>
+              <li><strong>Pilot wait window</strong>: let each new OS generation of DC run alongside the old for at least 1&ndash;2 weeks before transferring FSMO. Rolls back painlessly if issues surface.</li>
+              <li><strong>Backups at every hop</strong>: tombstone lifetime is 180 days; never run older than that. Verify a restore test in the lab before FL raise.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="upgrade-timeline">
+          <h4 class="upgrade-table-title">Timeline View</h4>
+          <div class="tl-track">
+            <div class="tl-step tl-start"><div class="tl-dot"></div><div class="tl-label">Day 0<br><strong>WS 2008 R2</strong><br>FL 2008 R2 &middot; Schema 47</div></div>
+            <div class="tl-line"></div>
+            <div class="tl-step"><div class="tl-dot dot-mid"></div><div class="tl-label">Week 1&ndash;4<br>Health check, backups,<br>FRS&rarr;DFSR, adprep (WS 2019/22)</div></div>
+            <div class="tl-line"></div>
+            <div class="tl-step"><div class="tl-dot dot-mid"></div><div class="tl-label">Week 4&ndash;8<br>Introduce + transfer FSMO<br>Demote 2008 R2 DCs</div></div>
+            <div class="tl-line"></div>
+            <div class="tl-step tl-mid"><div class="tl-dot"></div><div class="tl-label">Checkpoint<br><strong>WS 2019/2022</strong><br>FL 2016 &middot; Schema 88</div></div>
+            <div class="tl-line"></div>
+            <div class="tl-step"><div class="tl-dot dot-mid"></div><div class="tl-label">Month 2&ndash;3<br>adprep (WS 2025)<br>Introduce WS 2025 DCs</div></div>
+            <div class="tl-line"></div>
+            <div class="tl-step"><div class="tl-dot dot-mid"></div><div class="tl-label">Month 3&ndash;4<br>Transfer FSMO, demote<br>interim DCs</div></div>
+            <div class="tl-line"></div>
+            <div class="tl-step tl-end"><div class="tl-dot"></div><div class="tl-label">Done<br><strong>WS 2025</strong><br>FL 2025 &middot; Schema 92<br>dMSA, PKINIT agility</div></div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </section>

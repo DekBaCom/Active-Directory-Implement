@@ -378,6 +378,7 @@ const SEARCH_INDEX = [
   { title: 'AD Service Types', hash: '#ad-types', keywords: 'ad ds entra id azure aadds adcs adfs adlds adrms pki certificate federation lightweight rights' },
   { title: 'Windows Server Editions', hash: '#windows-editions', keywords: 'windows server 2025 2022 essentials standard datacenter licensing cal edition comparison functional level' },
   { title: 'Functional Level Upgrade Guide', hash: '#windows-editions', keywords: 'functional level upgrade dfl ffl raise set-addomainmode set-adforestmode schema rollback domain mode forest mode' },
+  { title: 'WS 2008 R2 to WS 2025 Upgrade Path', hash: '#upgrade-path', keywords: 'upgrade path windows server 2008 r2 2012 2016 2019 2022 2025 schema version 47 56 69 87 88 92 adprep forestprep domainprep frs dfsr migration long-haul' },
   { title: 'Implementation Guide', hash: '#implementation', keywords: 'install deploy powershell promote domain controller forest install-addsforest planning ou assessment' },
   { title: 'Architecture Design', hash: '#architecture', keywords: 'architecture small medium enterprise hybrid cloud design single multi forest empty root fsmo placement' },
   { title: 'Cost Calculator', hash: '#calculator', keywords: 'cost price calculator estimate budget license hardware msrp software assurance' },
