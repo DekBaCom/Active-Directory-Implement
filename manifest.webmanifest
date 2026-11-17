@@ -1,0 +1,23 @@
+{
+  "name": "Active Directory Implementation Guide",
+  "short_name": "AD Implement",
+  "description": "Complete guide to Microsoft Active Directory, Entra ID, and Entra Domain Services — architecture, PowerShell recipes, attack & defense, downloadable templates.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0d0d1a",
+  "theme_color": "#0078d4",
+  "lang": "en",
+  "categories": ["education", "productivity", "utilities"],
+  "icons": [
+    { "src": "assets/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "assets/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "PowerShell Recipes", "url": "./#powershell" },
+    { "name": "Attacks & Defense", "url": "./#security" },
+    { "name": "Excel Templates", "url": "./#templates" },
+    { "name": "FAQ", "url": "./#faq" }
+  ]
+}

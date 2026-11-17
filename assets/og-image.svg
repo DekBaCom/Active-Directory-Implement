@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" font-family="Inter, 'Segoe UI', system-ui, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0d0d1a"/>
+      <stop offset="1" stop-color="#1a1a35"/>
+    </linearGradient>
+    <radialGradient id="glow1" cx="0.2" cy="0.3" r="0.6">
+      <stop offset="0" stop-color="#0078d4" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#0078d4" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow2" cx="0.85" cy="0.8" r="0.5">
+      <stop offset="0" stop-color="#b4a7f5" stop-opacity="0.25"/>
+      <stop offset="1" stop-color="#b4a7f5" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="brand" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0078d4"/>
+      <stop offset="1" stop-color="#50e6ff"/>
+    </linearGradient>
+    <linearGradient id="title" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.6" stop-color="#50e6ff"/>
+      <stop offset="1" stop-color="#b4a7f5"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#glow1)"/>
+  <rect width="1200" height="630" fill="url(#glow2)"/>
+
+  <!-- Brand chip -->
+  <g transform="translate(80,70)">
+    <rect width="88" height="88" rx="18" fill="url(#brand)"/>
+    <path d="M44 16 L72 44 L44 72 L16 44 Z" fill="#fff" fill-opacity="0.95"/>
+    <path d="M44 28 L60 44 L44 60 L28 44 Z" fill="#0078d4" fill-opacity="0.9"/>
+    <circle cx="44" cy="44" r="5" fill="#fff"/>
+  </g>
+  <text x="192" y="110" font-size="28" font-weight="500" fill="#50e6ff" letter-spacing="2">AD</text>
+  <text x="222" y="110" font-size="28" font-weight="800" fill="#ffffff" letter-spacing="1">Implement</text>
+  <text x="192" y="140" font-size="16" fill="#8892b0" letter-spacing="3">ENTERPRISE IT INFRASTRUCTURE</text>
+
+  <!-- Title -->
+  <text x="80" y="268" font-size="76" font-weight="800" fill="#ffffff" letter-spacing="-1">Active Directory</text>
+  <text x="80" y="356" font-size="76" font-weight="800" fill="url(#title)" letter-spacing="-1">Implementation Guide</text>
+
+  <!-- Subtitle -->
+  <text x="80" y="408" font-size="22" fill="#8892b0">From concept to production &#8212; Windows Server 2025 &amp; Microsoft Entra ID</text>
+
+  <!-- Feature chips -->
+  <g transform="translate(80,460)">
+    <g transform="translate(0,0)">
+      <rect width="210" height="46" rx="23" fill="#1a1a35" stroke="#0078d4" stroke-opacity="0.5" stroke-width="2"/>
+      <text x="105" y="30" text-anchor="middle" font-size="16" fill="#e8eaf0">12 Chapters</text>
+    </g>
+    <g transform="translate(222,0)">
+      <rect width="260" height="46" rx="23" fill="#1a1a35" stroke="#50e6ff" stroke-opacity="0.5" stroke-width="2"/>
+      <text x="130" y="30" text-anchor="middle" font-size="16" fill="#e8eaf0">Attacks &amp; Defense</text>
+    </g>
+    <g transform="translate(494,0)">
+      <rect width="280" height="46" rx="23" fill="#1a1a35" stroke="#57d9a3" stroke-opacity="0.5" stroke-width="2"/>
+      <text x="140" y="30" text-anchor="middle" font-size="16" fill="#e8eaf0">PowerShell Recipes</text>
+    </g>
+    <g transform="translate(786,0)">
+      <rect width="290" height="46" rx="23" fill="#1a1a35" stroke="#b4a7f5" stroke-opacity="0.5" stroke-width="2"/>
+      <text x="145" y="30" text-anchor="middle" font-size="16" fill="#e8eaf0">Excel Templates</text>
+    </g>
+  </g>
+
+  <!-- Bottom URL / contributor -->
+  <text x="80" y="572" font-size="14" fill="#8892b0" letter-spacing="1">dekbacom.github.io/Active-Directory-Implement</text>
+  <text x="1120" y="572" text-anchor="end" font-size="14" fill="#8892b0">by Abdulloh Etaeluengoh</text>
+</svg>
