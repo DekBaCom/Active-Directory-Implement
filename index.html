@@ -1478,6 +1478,14 @@ repadmin /showrepl</code></pre>
           <div class="arch-diagram eds-hybrid-arch">
             <div class="arch-title">Microsoft Entra Domain Services &mdash; Hybrid Design</div>
 
+            <figure class="arch-figure">
+              <img src="assets/entra-ds-hybrid.svg" alt="Architecture diagram: on-premises AD DS stays the identity source of truth. Microsoft Entra Connect syncs users and password hashes to Entra ID, which feeds a Microsoft-managed Entra DS domain in Azure. An optional one-way outbound forest trust from on-prem AD to Entra DS lets on-prem users access Entra-DS-joined resources." loading="lazy" />
+              <figcaption>
+                <span>Microsoft Entra Domain Services &mdash; Hybrid Design</span>
+                <a class="arch-figure-link" href="assets/entra-ds-hybrid.svg" target="_blank" rel="noopener" title="Open SVG in a new tab (right-click &rarr; Save As to download)">&#128448; Open / Download SVG</a>
+              </figcaption>
+            </figure>
+
             <div class="arch-hybrid-two">
 
               <div class="arch-hybrid-side onprem">
