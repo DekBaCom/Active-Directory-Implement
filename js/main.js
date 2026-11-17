@@ -16,13 +16,43 @@ window.addEventListener('scroll', () => {
 
 if (navToggle && navLinks) {
   navToggle.addEventListener('click', () => {
-    navLinks.classList.toggle('open');
+    const isOpen = navLinks.classList.toggle('open');
+    navToggle.classList.toggle('open', isOpen);
+    navToggle.setAttribute('aria-expanded', String(isOpen));
   });
 }
 
-document.querySelectorAll('.nav-link').forEach(link => {
+// Dropdown group toggles (mobile tap, desktop hover handled in CSS)
+document.querySelectorAll('.nav-group-btn').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    const group = btn.closest('.nav-group');
+    if (!group) return;
+    e.preventDefault();
+    const willOpen = !group.classList.contains('open');
+    document.querySelectorAll('.nav-group.open').forEach(g => g !== group && g.classList.remove('open'));
+    group.classList.toggle('open', willOpen);
+    btn.setAttribute('aria-expanded', String(willOpen));
+  });
+});
+
+// Close dropdowns on outside click
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.nav-group')) {
+    document.querySelectorAll('.nav-group.open').forEach(g => {
+      g.classList.remove('open');
+      const b = g.querySelector('.nav-group-btn');
+      if (b) b.setAttribute('aria-expanded', 'false');
+    });
+  }
+});
+
+// Clicking a nav link (including inside dropdown) closes mobile menu
+document.querySelectorAll('.nav-link, .nav-drop-link').forEach(link => {
+  if (link.classList.contains('nav-group-btn')) return;
   link.addEventListener('click', () => {
     if (navLinks) navLinks.classList.remove('open');
+    if (navToggle) { navToggle.classList.remove('open'); navToggle.setAttribute('aria-expanded', 'false'); }
+    document.querySelectorAll('.nav-group.open').forEach(g => g.classList.remove('open'));
   });
 });
 
@@ -32,8 +62,17 @@ function updateActiveNavLink() {
   sections.forEach(sec => {
     if (window.scrollY >= sec.offsetTop - 120) current = sec.id;
   });
-  document.querySelectorAll('.nav-link').forEach(link => {
-    link.classList.toggle('active', link.getAttribute('href') === `#${current}`);
+  let activeGroupBtn = null;
+  document.querySelectorAll('.nav-drop-link').forEach(link => {
+    const isActive = link.getAttribute('href') === `#${current}`;
+    link.classList.toggle('active', isActive);
+    if (isActive) activeGroupBtn = link.closest('.nav-group') && link.closest('.nav-group').querySelector('.nav-group-btn');
+  });
+  document.querySelectorAll('.nav-group-btn').forEach(btn => btn.classList.remove('active'));
+  if (activeGroupBtn) activeGroupBtn.classList.add('active');
+  // Also handle any plain .nav-link anchors not inside a dropdown
+  document.querySelectorAll('.nav-link:not(.nav-group-btn)').forEach(link => {
+    if (link.getAttribute('href')) link.classList.toggle('active', link.getAttribute('href') === `#${current}`);
   });
 }
 
@@ -322,11 +361,8 @@ function downloadEstimate(format) {
   }
 
   const blob = new Blob([content], { type: mime });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `AD-Cost-Estimate.${ext}`;
-  a.click();
-  URL.revokeObjectURL(a.href);
+  saveBlob(blob, `AD-Cost-Estimate.${ext}`);
+  if (typeof toast === 'function') toast(`Downloaded AD-Cost-Estimate.${ext}`);
 }
 
 // ===== SEARCH / COMMAND PALETTE (Ctrl+K) =====
@@ -719,17 +755,71 @@ function copyRecipe(id, btn) {
   }
 }
 
+function recipeFileContent(r) {
+  const header = `<#
+.SYNOPSIS
+  ${r.title}
+
+.DESCRIPTION
+  ${r.desc}
+
+.NOTES
+  Tags:   ${r.tags.join(', ')}
+  Source: AD Implementation Guide (https://dekbacom.github.io/Active-Directory-Implement/)
+  Downloaded: ${new Date().toISOString().slice(0,10)}
+#>
+
+`;
+  return header + r.code + '\n';
+}
+
 function downloadRecipe(id) {
-  const r = RECIPES.find(x => x.id === id);
-  if (!r) return;
-  const header = `<# \n  ${r.title}\n  ${r.desc}\n  Tags: ${r.tags.join(', ')}\n  Source: AD Implementation Guide\n#>\n\n`;
-  const blob = new Blob([header + r.code], { type: 'text/plain' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `${r.id}.ps1`;
-  a.click();
-  URL.revokeObjectURL(a.href);
-  toast(`Downloaded ${r.id}.ps1`);
+  try {
+    const r = RECIPES.find(x => x.id === id);
+    if (!r) { toast('Recipe not found'); return; }
+    const blob = new Blob([recipeFileContent(r)], { type: 'text/plain;charset=utf-8' });
+    saveBlob(blob, `${r.id}.ps1`);
+    toast(`Downloaded ${r.id}.ps1`);
+  } catch (err) {
+    console.error('Recipe download failed:', err);
+    toast('Download failed - see console');
+  }
+}
+
+function downloadVisibleRecipes() {
+  try {
+    const visibleIds = Array.from(document.querySelectorAll('.recipe-card:not(.hidden)'))
+      .map(el => el.id.replace('recipe-', ''));
+    if (!visibleIds.length) { toast('No recipes visible'); return; }
+    visibleIds.forEach((id, i) => setTimeout(() => downloadRecipe(id), i * 450));
+    toast(`Downloading ${visibleIds.length} recipes...`);
+  } catch (err) {
+    console.error(err);
+    toast('Download failed - see console');
+  }
+}
+
+function downloadRecipesBundle() {
+  try {
+    const parts = RECIPES.map(r => `# =====================================================================
+# FILE: ${r.id}.ps1  |  ${r.title}
+# TAGS: ${r.tags.join(', ')}
+# =====================================================================
+${recipeFileContent(r)}`);
+    const content = `<#
+  AD Implementation Guide - PowerShell Recipe Bundle
+  ${RECIPES.length} recipes concatenated. Split with # ===== dividers.
+  Generated: ${new Date().toISOString().slice(0,10)}
+#>
+
+${parts.join('\n')}`;
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    saveBlob(blob, `ad-powershell-bundle-${new Date().toISOString().slice(0,10)}.ps1`);
+    toast('Downloaded recipe bundle');
+  } catch (err) {
+    console.error(err);
+    toast('Download failed - see console');
+  }
 }
 
 function filterRecipes() {
@@ -899,14 +989,57 @@ function xlsSheetHtml(title, headers, rows) {
 </body></html>`;
 }
 
-function downloadXls(filename, html) {
-  const blob = new Blob(['﻿' + html], { type: 'application/vnd.ms-excel' });
+function saveBlob(blob, filename) {
+  // IE / old Edge
+  if (window.navigator && window.navigator.msSaveOrOpenBlob) {
+    window.navigator.msSaveOrOpenBlob(blob, filename);
+    return true;
+  }
+  const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
+  a.href = url;
   a.download = filename;
+  a.rel = 'noopener';
+  a.style.display = 'none';
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(a.href);
-  toast(`Downloaded ${filename}`);
+  // Give the browser a moment to start the download before revoking the URL
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 150);
+  return true;
+}
+
+function downloadXls(filename, html) {
+  try {
+    const blob = new Blob(['﻿' + html], { type: 'application/vnd.ms-excel' });
+    saveBlob(blob, filename);
+    toast(`Downloaded ${filename}`);
+  } catch (err) {
+    console.error('XLS download failed:', err);
+    toast('Download failed - see console');
+  }
+}
+
+function toCsv(headers, rows) {
+  const esc = v => {
+    const s = v == null ? '' : String(v);
+    return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  return [headers, ...rows].map(r => r.map(esc).join(',')).join('\r\n');
+}
+
+function downloadCsv(filename, headers, rows) {
+  try {
+    const content = '﻿' + toCsv(headers, rows);
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8' });
+    saveBlob(blob, filename);
+    toast(`Downloaded ${filename}`);
+  } catch (err) {
+    console.error('CSV download failed:', err);
+    toast('Download failed - see console');
+  }
 }
 
 const TEMPLATES = {
@@ -1157,15 +1290,21 @@ const TEMPLATES = {
   },
 };
 
-function downloadTemplate(key) {
+function downloadTemplate(key, format) {
   const tpl = TEMPLATES[key];
-  if (!tpl) return;
-  const html = xlsSheetHtml(tpl.title, tpl.headers, tpl.rows);
-  downloadXls(`${key}-template.xls`, html);
+  if (!tpl) { toast('Template not found'); return; }
+  format = (format || 'xls').toLowerCase();
+  if (format === 'csv') {
+    downloadCsv(`${key}-template.csv`, tpl.headers, tpl.rows);
+  } else {
+    const html = xlsSheetHtml(tpl.title, tpl.headers, tpl.rows);
+    downloadXls(`${key}-template.xls`, html);
+  }
 }
 
-function downloadAllTemplates() {
-  Object.keys(TEMPLATES).forEach((k, i) => setTimeout(() => downloadTemplate(k), i * 400));
+function downloadAllTemplates(format) {
+  format = format || 'xls';
+  Object.keys(TEMPLATES).forEach((k, i) => setTimeout(() => downloadTemplate(k, format), i * 500));
 }
 
 // ===== SCROLL ANIMATIONS =====

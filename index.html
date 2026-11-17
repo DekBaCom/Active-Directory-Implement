@@ -24,18 +24,39 @@
       <span></span><span></span><span></span>
     </button>
     <ul class="nav-links" id="navLinks">
-      <li><a href="#what-is-ad" class="nav-link">What is AD</a></li>
-      <li><a href="#ad-types" class="nav-link">AD Types</a></li>
-      <li><a href="#windows-editions" class="nav-link">Windows</a></li>
-      <li><a href="#implementation" class="nav-link">Implement</a></li>
-      <li><a href="#architecture" class="nav-link">Architecture</a></li>
-      <li><a href="#calculator" class="nav-link">Cost Calc</a></li>
-      <li><a href="#best-practices" class="nav-link">Best Practices</a></li>
-      <li><a href="#security" class="nav-link">Security</a></li>
-      <li><a href="#powershell" class="nav-link">PS Recipes</a></li>
-      <li><a href="#alternatives" class="nav-link">Alternatives</a></li>
-      <li><a href="#templates" class="nav-link">Templates</a></li>
-      <li><a href="#faq" class="nav-link">FAQ</a></li>
+      <li class="nav-group">
+        <button class="nav-link nav-group-btn" aria-haspopup="true" aria-expanded="false">Learn <span class="caret">&#9662;</span></button>
+        <ul class="nav-dropdown">
+          <li><a href="#what-is-ad" class="nav-drop-link"><span class="dl-num">01</span> What is AD</a></li>
+          <li><a href="#ad-types" class="nav-drop-link"><span class="dl-num">02</span> AD Service Types</a></li>
+          <li><a href="#entra-ds" class="nav-drop-link"><span class="dl-num">02.1</span> Entra Domain Services</a></li>
+          <li><a href="#windows-editions" class="nav-drop-link"><span class="dl-num">03</span> Windows Editions &amp; FL</a></li>
+        </ul>
+      </li>
+      <li class="nav-group">
+        <button class="nav-link nav-group-btn" aria-haspopup="true" aria-expanded="false">Build <span class="caret">&#9662;</span></button>
+        <ul class="nav-dropdown">
+          <li><a href="#implementation" class="nav-drop-link"><span class="dl-num">04</span> Implementation</a></li>
+          <li><a href="#architecture" class="nav-drop-link"><span class="dl-num">05</span> Architecture</a></li>
+          <li><a href="#calculator" class="nav-drop-link"><span class="dl-num">06</span> Cost Calculator</a></li>
+        </ul>
+      </li>
+      <li class="nav-group">
+        <button class="nav-link nav-group-btn" aria-haspopup="true" aria-expanded="false">Operate <span class="caret">&#9662;</span></button>
+        <ul class="nav-dropdown">
+          <li><a href="#best-practices" class="nav-drop-link"><span class="dl-num">07</span> Best Practices</a></li>
+          <li><a href="#security" class="nav-drop-link"><span class="dl-num">08</span> Attacks &amp; Defense</a></li>
+          <li><a href="#powershell" class="nav-drop-link"><span class="dl-num">09</span> PowerShell Recipes</a></li>
+        </ul>
+      </li>
+      <li class="nav-group">
+        <button class="nav-link nav-group-btn" aria-haspopup="true" aria-expanded="false">Resources <span class="caret">&#9662;</span></button>
+        <ul class="nav-dropdown">
+          <li><a href="#alternatives" class="nav-drop-link"><span class="dl-num">10</span> Alternatives</a></li>
+          <li><a href="#templates" class="nav-drop-link"><span class="dl-num">11</span> Excel Templates</a></li>
+          <li><a href="#faq" class="nav-drop-link"><span class="dl-num">12</span> FAQ &amp; Links</a></li>
+        </ul>
+      </li>
       <li class="nav-actions">
         <button class="nav-icon-btn" id="searchBtn" aria-label="Search (Ctrl+K)" title="Search (Ctrl+K)">&#128269;</button>
         <button class="nav-icon-btn" id="shortcutsBtn" aria-label="Keyboard shortcuts (?)" title="Keyboard shortcuts (?)">&#9000;</button>
@@ -1887,6 +1908,11 @@ repadmin /showrepl</code></pre>
       </div>
     </div>
 
+    <div class="recipe-bulk-actions">
+      <button class="btn btn-secondary" onclick="downloadVisibleRecipes()">&#128229; Download Visible as .ps1</button>
+      <button class="btn btn-primary" onclick="downloadRecipesBundle()">&#128230; Download All as Single Bundle</button>
+    </div>
+
     <div class="recipe-list" id="recipeList">
       <!-- Recipes injected by JS -->
     </div>
@@ -1985,7 +2011,10 @@ repadmin /showrepl</code></pre>
         <h4>New AD Implementation Checklist</h4>
         <p>5-phase deployment plan: Planning, Infrastructure Prep, AD DS Deployment, Post-Deployment, Testing. ~40 tasks with owner / date / status columns.</p>
         <div class="template-meta">5 phases &middot; 40+ rows</div>
-        <button class="btn btn-primary" onclick="downloadTemplate('new-ad-implementation')">&#128229; Download .xls</button>
+        <div class="template-btn-group">
+          <button class="btn btn-primary" onclick="downloadTemplate('new-ad-implementation','xls')">&#128229; .xls</button>
+          <button class="btn btn-secondary" onclick="downloadTemplate('new-ad-implementation','csv')">&#128202; .csv</button>
+        </div>
       </article>
 
       <article class="template-card">
@@ -1993,7 +2022,10 @@ repadmin /showrepl</code></pre>
         <h4>AD Upgrade Checklist</h4>
         <p>Pre-upgrade assessment, prerequisites, migration (introduce &rarr; transfer &rarr; decommission), functional-level raise, and validation.</p>
         <div class="template-meta">5 phases &middot; 35+ rows</div>
-        <button class="btn btn-primary" onclick="downloadTemplate('ad-upgrade')">&#128229; Download .xls</button>
+        <div class="template-btn-group">
+          <button class="btn btn-primary" onclick="downloadTemplate('ad-upgrade','xls')">&#128229; .xls</button>
+          <button class="btn btn-secondary" onclick="downloadTemplate('ad-upgrade','csv')">&#128202; .csv</button>
+        </div>
       </article>
 
       <article class="template-card">
@@ -2001,7 +2033,10 @@ repadmin /showrepl</code></pre>
         <h4>Assessment Questionnaire</h4>
         <p>Current-state inventory: scale, DC infrastructure, security posture, operations, hybrid and compliance. Use before upgrades or audits.</p>
         <div class="template-meta">6 categories &middot; 35+ questions</div>
-        <button class="btn btn-primary" onclick="downloadTemplate('assessment-questionnaire')">&#128229; Download .xls</button>
+        <div class="template-btn-group">
+          <button class="btn btn-primary" onclick="downloadTemplate('assessment-questionnaire','xls')">&#128229; .xls</button>
+          <button class="btn btn-secondary" onclick="downloadTemplate('assessment-questionnaire','csv')">&#128202; .csv</button>
+        </div>
       </article>
 
       <article class="template-card">
@@ -2009,7 +2044,10 @@ repadmin /showrepl</code></pre>
         <h4>Security Hardening Checklist</h4>
         <p>Controls across Identity, Auth, Service Accounts, Password Policy, Monitoring, DC Hardening and Backup. Priority-tagged.</p>
         <div class="template-meta">7 sections &middot; 40+ controls</div>
-        <button class="btn btn-primary" onclick="downloadTemplate('security-checklist')">&#128229; Download .xls</button>
+        <div class="template-btn-group">
+          <button class="btn btn-primary" onclick="downloadTemplate('security-checklist','xls')">&#128229; .xls</button>
+          <button class="btn btn-secondary" onclick="downloadTemplate('security-checklist','csv')">&#128202; .csv</button>
+        </div>
       </article>
 
       <article class="template-card">
@@ -2017,15 +2055,21 @@ repadmin /showrepl</code></pre>
         <h4>Best Practices Audit</h4>
         <p>Compare current state vs recommended across Architecture, OU Design, Groups, GPO, Replication, Time, Operations, Hybrid.</p>
         <div class="template-meta">8 areas &middot; 35+ items</div>
-        <button class="btn btn-primary" onclick="downloadTemplate('best-practices')">&#128229; Download .xls</button>
+        <div class="template-btn-group">
+          <button class="btn btn-primary" onclick="downloadTemplate('best-practices','xls')">&#128229; .xls</button>
+          <button class="btn btn-secondary" onclick="downloadTemplate('best-practices','csv')">&#128202; .csv</button>
+        </div>
       </article>
 
       <article class="template-card template-bundle">
         <div class="template-icon">&#128230;</div>
         <h4>Download All Templates</h4>
-        <p>Grab all 5 templates in one click. Each file downloads as a separate <code>.xls</code> workbook, ~400&nbsp;ms apart to keep the browser happy.</p>
+        <p>Grab all 5 templates in one click. Each file downloads as a separate workbook, ~500&nbsp;ms apart to keep the browser happy.</p>
         <div class="template-meta">5 files &middot; bundle</div>
-        <button class="btn btn-primary" onclick="downloadAllTemplates()">&#128230; Download Bundle</button>
+        <div class="template-btn-group">
+          <button class="btn btn-primary" onclick="downloadAllTemplates('xls')">&#128230; All .xls</button>
+          <button class="btn btn-secondary" onclick="downloadAllTemplates('csv')">&#128202; All .csv</button>
+        </div>
       </article>
 
     </div>
