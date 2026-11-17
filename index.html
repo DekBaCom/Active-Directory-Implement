@@ -562,6 +562,36 @@
       <div class="impl-mode">
         <h3>&#9729; Cloud-only Entra DS</h3>
         <p style="color:var(--text-muted);">Users live in <strong>Microsoft Entra ID</strong> only (no on-prem AD). Entra ID is the source of truth; Entra DS is the managed classic-protocol domain.</p>
+
+        <div class="eds-diagram cloud-diagram" aria-label="Cloud-only Entra Domain Services architecture">
+          <div class="diag-caption">Cloud-only Architecture</div>
+          <div class="diag-layer diag-identity">
+            <div class="diag-layer-label">Identity (Source of Truth)</div>
+            <div class="diag-box diag-entra-id">&#9729; Microsoft Entra ID<br><small>Users, Groups, Passwords</small></div>
+          </div>
+          <div class="diag-arrow diag-down">&#8595;<span>one-way sync (users + hashes)</span></div>
+          <div class="diag-layer diag-managed">
+            <div class="diag-layer-label">Azure &mdash; Managed Domain</div>
+            <div class="diag-sub">
+              <div class="diag-box diag-dc">&#128230; Managed DC 1<br><small>LDAP / Kerberos / NTLM</small></div>
+              <div class="diag-box diag-dc">&#128230; Managed DC 2<br><small>HA pair (Microsoft-managed)</small></div>
+            </div>
+            <div class="diag-sub-label">VNet: 10.0.0.0/16 &middot; subnet 10.0.1.0/24 &middot; DNS: DC IPs</div>
+          </div>
+          <div class="diag-arrow diag-down">&#8595; domain join / auth</div>
+          <div class="diag-layer diag-workloads">
+            <div class="diag-layer-label">Workloads in the same VNet</div>
+            <div class="diag-sub">
+              <div class="diag-pill">&#128187; Azure VMs (Win/Linux)</div>
+              <div class="diag-pill">&#128193; Azure Files (SMB)</div>
+              <div class="diag-pill">&#128246; Azure Virtual Desktop</div>
+              <div class="diag-pill">&#128193; SQL Server on IaaS</div>
+              <div class="diag-pill">&#128274; LoB apps (LDAP bind)</div>
+            </div>
+          </div>
+          <div class="diag-note">&#128161; No on-prem AD, no DCs to patch. Microsoft manages the DCs. Users keep their Entra ID credentials.</div>
+        </div>
+
         <div class="impl-steps">
           <div class="impl-step"><strong>Prepare the tenant</strong>Have a Microsoft Entra ID tenant with user accounts. If users originate as cloud-only, they must reset their password <em>after</em> Entra DS is enabled so the NTLM/Kerberos hashes are generated.</div>
           <div class="impl-step"><strong>Create an Azure VNet &amp; subnet</strong>Dedicated VNet with a subnet (e.g., <code>10.0.1.0/24</code>) that will host the managed domain controllers. Avoid overlapping ranges.</div>
@@ -603,6 +633,50 @@ az ad ds create --resource-group rg-eds \
       <div class="impl-mode hybrid-mode">
         <h3>&#128256; Hybrid: on-prem AD DS + Entra ID + Entra DS</h3>
         <p style="color:var(--text-muted);">On-prem AD DS is the source of truth. <strong>Microsoft Entra Connect</strong> syncs users/groups and <strong>password hashes</strong> to Entra ID, which in turn feeds Entra DS.</p>
+
+        <div class="eds-diagram hybrid-diagram" aria-label="Hybrid Entra Domain Services architecture">
+          <div class="diag-caption">Hybrid Architecture</div>
+          <div class="hybrid-two-col">
+            <div class="hybrid-col hybrid-onprem">
+              <div class="hybrid-env-label">&#127970; On-Premises Datacenter</div>
+              <div class="diag-box diag-adds">&#127968; AD DS <code>corp.contoso.com</code><br><small>DC1 &middot; DC2 (your DCs)</small></div>
+              <div class="diag-pill-row">
+                <div class="diag-pill">&#128187; Workstations</div>
+                <div class="diag-pill">&#128188; File &amp; Print</div>
+                <div class="diag-pill">&#128274; LoB apps</div>
+              </div>
+              <div class="diag-box diag-connect">&#8597; Microsoft Entra Connect<br><small>PHS sync (password hashes required)</small></div>
+            </div>
+
+            <div class="hybrid-link">
+              <div class="link-cloud">&#9729;</div>
+              <div class="link-arrow">&harr;</div>
+              <div class="link-text">ExpressRoute<br>or Site-to-Site VPN</div>
+            </div>
+
+            <div class="hybrid-col hybrid-cloud">
+              <div class="hybrid-env-label">&#9729; Microsoft Cloud / Azure</div>
+              <div class="diag-box diag-entra-id">&#128274; Microsoft Entra ID<br><small>Cloud identities, Conditional Access, MFA</small></div>
+              <div class="diag-arrow diag-down tight">&darr; sync hashes</div>
+              <div class="diag-sub">
+                <div class="diag-box diag-dc">&#128230; Entra DS DC 1<br><small><code>aadds.contoso.com</code></small></div>
+                <div class="diag-box diag-dc">&#128230; Entra DS DC 2<br><small>Microsoft-managed</small></div>
+              </div>
+              <div class="diag-sub-label">Separate VNet &middot; distinct DNS namespace</div>
+              <div class="diag-pill-row">
+                <div class="diag-pill">&#128187; Azure VMs</div>
+                <div class="diag-pill">&#128246; Azure Virtual Desktop</div>
+                <div class="diag-pill">&#128193; Azure Files (Kerberos)</div>
+              </div>
+            </div>
+          </div>
+          <div class="diag-trust">
+            <div class="trust-arrow">&larr;&middot;&middot;&middot;&middot;&middot;&middot;&middot;&middot;</div>
+            <div class="trust-label">Optional one-way outbound forest trust (on-prem AD &rarr; Entra DS)</div>
+          </div>
+          <div class="diag-note">&#128161; On-prem AD remains the source of truth. Entra ID bridges on-prem to the cloud. Entra DS provides classic protocols for lift-and-shift Azure workloads.</div>
+        </div>
+
         <div class="impl-steps">
           <div class="impl-step"><strong>Confirm Entra Connect sync method</strong>Use <strong>Password Hash Sync (PHS)</strong>. Pass-Through Auth alone is <em>not</em> sufficient — Entra DS needs the legacy hash to generate Kerberos/NTLM credentials.</div>
           <div class="impl-step"><strong>Verify directory sync</strong>Confirm users and groups appear in Entra ID with correct UPN and SIDs. Resolve any sync errors before provisioning Entra DS.</div>
