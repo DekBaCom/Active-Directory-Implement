@@ -106,6 +106,29 @@
   </div>
 </nav>
 
+<!-- ===== MOBILE CHAPTER PICKER (bottom-sheet) ===== -->
+<div class="mobile-picker" id="mobilePicker" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Jump to chapter">
+  <div class="mobile-picker-backdrop" data-mp-close></div>
+  <aside class="mobile-picker-sheet">
+    <header class="mobile-picker-head">
+      <div class="mobile-picker-title">
+        <span class="mobile-picker-eyebrow">&#9670; ADImplement</span>
+        <h3>Jump to chapter</h3>
+      </div>
+      <div class="mobile-picker-actions">
+        <button class="mp-icon-btn" id="mpSearchBtn" aria-label="Search">&#128269;</button>
+        <button class="mp-icon-btn" id="mpThemeBtn" aria-label="Toggle theme">&#9790;</button>
+        <button class="mp-icon-btn mp-close" data-mp-close aria-label="Close menu">&#10006;</button>
+      </div>
+    </header>
+    <nav class="mobile-picker-list" id="mobilePickerList" aria-label="All chapters"></nav>
+    <footer class="mobile-picker-foot">
+      <span class="mp-foot-count" id="mpFootCount">21 chapters</span>
+      <span class="mp-foot-tip">Tap a chapter to jump &rarr;</span>
+    </footer>
+  </aside>
+</div>
+
 <!-- ===== SEARCH MODAL ===== -->
 <div class="search-modal" id="searchModal" aria-hidden="true">
   <div class="search-backdrop" id="searchBackdrop"></div>

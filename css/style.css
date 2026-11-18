@@ -262,6 +262,169 @@ h1, h2, h3, h4 { font-weight: 700; line-height: 1.2; }
   .recipe-bulk-actions .btn { flex: 1; justify-content: center; }
 }
 
+/* ===== MOBILE CHAPTER PICKER (bottom-sheet) ===== */
+.mobile-picker {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease;
+}
+.mobile-picker.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.mobile-picker-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.mobile-picker-sheet {
+  position: relative;
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -16px 48px rgba(0,0,0,0.45);
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  transform: translateY(16px);
+  transition: transform 0.22s cubic-bezier(0.2,0.8,0.2,1);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+.mobile-picker.open .mobile-picker-sheet { transform: translateY(0); }
+.mobile-picker-sheet::before {
+  content: "";
+  position: absolute;
+  top: 8px; left: 50%;
+  transform: translateX(-50%);
+  width: 44px; height: 4px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.18);
+}
+.mobile-picker-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 18px 14px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.mobile-picker-title { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.mobile-picker-eyebrow {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.mobile-picker-title h3 {
+  font-size: 1.15rem;
+  margin: 0;
+  color: var(--text);
+}
+.mobile-picker-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.mp-icon-btn {
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 1.05rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.mp-icon-btn:hover, .mp-icon-btn:active { background: var(--surface2); border-color: var(--accent); }
+.mp-icon-btn.mp-close { background: rgba(255,50,80,0.08); border-color: rgba(255,50,80,0.25); }
+.mobile-picker-list {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 10px 14px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1 1 auto;
+}
+.mp-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.mp-group-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 10px 6px 4px;
+  border-top: 1px solid var(--border);
+}
+.mp-group:first-child .mp-group-label { border-top: none; padding-top: 2px; }
+.mp-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 12px;
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 0.96rem;
+  text-decoration: none;
+  transition: background 0.12s;
+  min-height: 48px;
+}
+.mp-link:active { background: var(--surface2); }
+.mp-link.active {
+  background: rgba(0,120,212,0.15);
+  color: var(--accent);
+}
+.mp-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--accent);
+  background: rgba(0,120,212,0.12);
+  padding: 4px 8px;
+  border-radius: 6px;
+  min-width: 44px;
+  text-align: center;
+  flex-shrink: 0;
+  font-weight: 600;
+}
+.mp-link-text { flex: 1; }
+.mobile-picker-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 18px;
+  border-top: 1px solid var(--border);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.mp-foot-count { font-weight: 600; color: var(--text); }
+/* Prevent body scroll while picker open */
+body.mp-open { overflow: hidden; }
+/* Hide the drawer version entirely while picker is enabled, to avoid two menus */
+@media (max-width: 960px) {
+  body.mp-open .nav-links.open { display: none; }
+}
+/* On tablets/desktops, picker is unreachable (hamburger is hidden). Keep it offscreen defensively. */
+@media (min-width: 961px) {
+  .mobile-picker { display: none; }
+}
+
 /* ===== HERO ===== */
 .hero {
   min-height: 100vh;

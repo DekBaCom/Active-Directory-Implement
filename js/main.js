@@ -14,13 +14,105 @@ window.addEventListener('scroll', () => {
   updateActiveNavLink();
 });
 
+// ===== MOBILE CHAPTER PICKER =====
+// On mobile (<=960px) the hamburger opens a bottom-sheet with every chapter,
+// built dynamically from the existing .nav-group structure so there is no
+// duplicate list to maintain.
+const mobilePicker = document.getElementById('mobilePicker');
+const mobilePickerList = document.getElementById('mobilePickerList');
+const mpSearchBtn = document.getElementById('mpSearchBtn');
+const mpThemeBtn = document.getElementById('mpThemeBtn');
+const mpFootCount = document.getElementById('mpFootCount');
+
+function buildMobilePicker() {
+  if (!mobilePickerList) return;
+  const groups = document.querySelectorAll('#navLinks > .nav-group');
+  let chapterCount = 0;
+  const html = [...groups].map(group => {
+    const btn = group.querySelector('.nav-group-btn');
+    const label = btn ? btn.textContent.replace(/[▾\s]+$/, '').trim() : '';
+    const links = [...group.querySelectorAll('.nav-drop-link')].map(a => {
+      const num = (a.querySelector('.dl-num') || {}).textContent || '';
+      const text = a.textContent.replace(num, '').trim();
+      chapterCount++;
+      return `<a class="mp-link" href="${a.getAttribute('href')}">
+                <span class="mp-num">${num}</span>
+                <span class="mp-link-text">${text}</span>
+              </a>`;
+    }).join('');
+    return `<div class="mp-group">
+              <div class="mp-group-label">${label}</div>
+              ${links}
+            </div>`;
+  }).join('');
+  mobilePickerList.innerHTML = html;
+  if (mpFootCount) mpFootCount.textContent = `${chapterCount} chapters`;
+}
+
+function openMobilePicker() {
+  if (!mobilePicker) return;
+  mobilePicker.classList.add('open');
+  mobilePicker.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('mp-open');
+  if (navToggle) {
+    navToggle.classList.add('open');
+    navToggle.setAttribute('aria-expanded', 'true');
+  }
+}
+function closeMobilePicker() {
+  if (!mobilePicker) return;
+  mobilePicker.classList.remove('open');
+  mobilePicker.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('mp-open');
+  if (navToggle) {
+    navToggle.classList.remove('open');
+    navToggle.setAttribute('aria-expanded', 'false');
+  }
+}
+
+buildMobilePicker();
+
 if (navToggle && navLinks) {
   navToggle.addEventListener('click', () => {
+    // On mobile (hamburger visible), open the picker instead of the accordion drawer.
+    const isMobile = window.matchMedia('(max-width: 960px)').matches;
+    if (isMobile && mobilePicker) {
+      if (mobilePicker.classList.contains('open')) closeMobilePicker();
+      else openMobilePicker();
+      return;
+    }
+    // Desktop fallback (rare; hamburger is hidden on desktop by CSS).
     const isOpen = navLinks.classList.toggle('open');
     navToggle.classList.toggle('open', isOpen);
     navToggle.setAttribute('aria-expanded', String(isOpen));
   });
 }
+
+if (mobilePicker) {
+  // Close on backdrop / close button / any chapter tap
+  mobilePicker.addEventListener('click', (e) => {
+    if (e.target.closest('[data-mp-close]')) { closeMobilePicker(); return; }
+    const link = e.target.closest('.mp-link');
+    if (link) {
+      // Let the browser navigate; close the sheet once anchor click fires.
+      setTimeout(closeMobilePicker, 0);
+    }
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && mobilePicker.classList.contains('open')) closeMobilePicker();
+  });
+}
+// Proxy the header icons inside the picker to the real buttons
+if (mpSearchBtn) mpSearchBtn.addEventListener('click', () => {
+  closeMobilePicker();
+  const sb = document.getElementById('searchBtn');
+  if (sb) sb.click();
+});
+if (mpThemeBtn) mpThemeBtn.addEventListener('click', () => {
+  const tt = document.getElementById('themeToggle');
+  if (tt) tt.click();
+  // Keep picker open so users can see theme change immediately
+});
 
 // Dropdown group toggles (mobile tap, desktop hover handled in CSS)
 document.querySelectorAll('.nav-group-btn').forEach(btn => {
@@ -73,6 +165,10 @@ function updateActiveNavLink() {
   // Also handle any plain .nav-link anchors not inside a dropdown
   document.querySelectorAll('.nav-link:not(.nav-group-btn)').forEach(link => {
     if (link.getAttribute('href')) link.classList.toggle('active', link.getAttribute('href') === `#${current}`);
+  });
+  // Mirror active state into the mobile picker
+  document.querySelectorAll('.mp-link').forEach(link => {
+    link.classList.toggle('active', link.getAttribute('href') === `#${current}`);
   });
 }
 
