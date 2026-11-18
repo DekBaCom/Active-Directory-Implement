@@ -2401,6 +2401,11 @@ repadmin /showrepl</code></pre>
         <button class="recipe-tag" data-tag="gpo">GPO</button>
         <button class="recipe-tag" data-tag="fsmo">FSMO</button>
         <button class="recipe-tag" data-tag="replication">Replication</button>
+        <button class="recipe-tag" data-tag="dns">DNS</button>
+        <button class="recipe-tag" data-tag="delegation">Delegation</button>
+        <button class="recipe-tag" data-tag="hybrid">Hybrid</button>
+        <button class="recipe-tag" data-tag="backup">Backup &amp; DR</button>
+        <button class="recipe-tag" data-tag="migration">Migration</button>
         <button class="recipe-tag" data-tag="security">Security</button>
         <button class="recipe-tag" data-tag="health">Health</button>
       </div>
@@ -3587,11 +3592,66 @@ Set-ADForestMode -Identity &quot;corp.com&quot; -ForestMode Windows2016Forest</c
         </div>
       </article>
 
+      <article class="template-card">
+        <div class="template-icon">&#127970;</div>
+        <h4>FSMO &amp; Replication Topology</h4>
+        <p>Inventory FSMO holders, every DC, sites, subnets, site links, GC placement, and replication-health checkpoints. Pairs with Ch 13 &amp; 14.</p>
+        <div class="template-meta">6 sections &middot; 30+ rows</div>
+        <div class="template-btn-group">
+          <button class="btn btn-primary" onclick="downloadTemplate('fsmo-replication-topology','xls')">&#128229; .xls</button>
+          <button class="btn btn-secondary" onclick="downloadTemplate('fsmo-replication-topology','csv')">&#128202; .csv</button>
+        </div>
+      </article>
+
+      <article class="template-card">
+        <div class="template-icon">&#128225;</div>
+        <h4>DNS Zone &amp; SRV Record Inventory</h4>
+        <p>Audit forward/reverse zones, forwarders, scavenging, the critical SRV records, split-brain exposure, and client DNS config. Pairs with Ch 15.</p>
+        <div class="template-meta">7 sections &middot; 35+ items</div>
+        <div class="template-btn-group">
+          <button class="btn btn-primary" onclick="downloadTemplate('dns-inventory','xls')">&#128229; .xls</button>
+          <button class="btn btn-secondary" onclick="downloadTemplate('dns-inventory','csv')">&#128202; .csv</button>
+        </div>
+      </article>
+
+      <article class="template-card">
+        <div class="template-icon">&#128196;</div>
+        <h4>GPO Inventory &amp; Audit</h4>
+        <p>Catalogue every GPO: foundational, security hardening, UX, audit policy; plus hygiene (unlinked, orphans, Central Store) and change control. Pairs with Ch 18.</p>
+        <div class="template-meta">6 sections &middot; 40+ rows</div>
+        <div class="template-btn-group">
+          <button class="btn btn-primary" onclick="downloadTemplate('gpo-inventory','xls')">&#128229; .xls</button>
+          <button class="btn btn-secondary" onclick="downloadTemplate('gpo-inventory','csv')">&#128202; .csv</button>
+        </div>
+      </article>
+
+      <article class="template-card">
+        <div class="template-icon">&#128190;</div>
+        <h4>Backup &amp; Forest Recovery Runbook</h4>
+        <p>Standing-state checklist, single-DC drill, authoritative restore, full forest-recovery procedure, and incident communications. Pairs with Ch 19.</p>
+        <div class="template-meta">5 phases &middot; 40+ steps</div>
+        <div class="template-btn-group">
+          <button class="btn btn-primary" onclick="downloadTemplate('backup-dr-runbook','xls')">&#128229; .xls</button>
+          <button class="btn btn-secondary" onclick="downloadTemplate('backup-dr-runbook','csv')">&#128202; .csv</button>
+        </div>
+      </article>
+
+      <article class="template-card">
+        <div class="template-icon">&#128680;</div>
+        <h4>Event ID Alert Catalogue</h4>
+        <p>SIEM-ready list of the Event IDs that matter: auth, account management, DS access (DCSync), DNS, DFSR, Netlogon &mdash; with severity, threshold and action. Pairs with Ch 20.</p>
+        <div class="template-meta">7 sections &middot; 35+ events</div>
+        <div class="template-btn-group">
+          <button class="btn btn-primary" onclick="downloadTemplate('event-id-alerts','xls')">&#128229; .xls</button>
+          <button class="btn btn-secondary" onclick="downloadTemplate('event-id-alerts','csv')">&#128202; .csv</button>
+        </div>
+      </article>
+
       <article class="template-card template-bundle">
         <div class="template-icon">&#128230;</div>
         <h4>Download All Templates</h4>
-        <p>Grab all 5 templates in one click. Each file downloads as a separate workbook, ~500&nbsp;ms apart to keep the browser happy.</p>
-        <div class="template-meta">5 files &middot; bundle</div>
+        <p>Grab all 10 templates in one click. Each file downloads as a separate workbook, ~500&nbsp;ms apart to keep the browser happy.</p>
+        <div class="template-meta">10 files &middot; bundle</div>
         <div class="template-btn-group">
           <button class="btn btn-primary" onclick="downloadAllTemplates('xls')">&#128230; All .xls</button>
           <button class="btn btn-secondary" onclick="downloadAllTemplates('csv')">&#128202; All .csv</button>

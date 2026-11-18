@@ -724,6 +724,317 @@ Set-LapsADReadPasswordPermission -Identity $ou -AllowedPrincipals "LAPS-Readers"
     @{n='PwdAgeDays';e={((Get-Date) - $_.PasswordLastSet).Days}},
     @{n='AESOnly';e={($_.'msDS-SupportedEncryptionTypes' -band 0x18) -eq 0x18}}`
   },
+  {
+    id: 'gmsa-create',
+    title: 'Create a gMSA (end-to-end)',
+    desc: 'Generate KDS root key (once per forest), create the gMSA, install it on target servers.',
+    tags: ['delegation', 'security'],
+    code: `# 1. One-time per forest - generate the KDS root key
+# The -10h trick makes the key immediately usable in a lab/single-DC setup.
+Add-KdsRootKey -EffectiveTime ((Get-Date).AddHours(-10))
+
+# 2. Group that contains hosts allowed to retrieve the password
+New-ADGroup -Name "gMSA-SQL-Hosts" -GroupScope Global
+Add-ADGroupMember "gMSA-SQL-Hosts" -Members "SQL-01$","SQL-02$"
+
+# 3. Create the gMSA (SamAccountName must be <= 15 chars, no trailing $)
+New-ADServiceAccount -Name "svcSQL01" \`
+  -DNSHostName "svcSQL01.corp.com" \`
+  -PrincipalsAllowedToRetrieveManagedPassword "gMSA-SQL-Hosts" \`
+  -ServicePrincipalNames "MSSQLSvc/SQL-01.corp.com:1433"
+
+# 4. On every target host (reboot first so computer-group membership applies)
+Install-ADServiceAccount -Identity "svcSQL01"
+Test-ADServiceAccount    -Identity "svcSQL01"   # must return True
+
+# 5. Configure the service: Logon As = corp\\svcSQL01$ (trailing $, blank password)`
+  },
+  {
+    id: 'delegate-ou-pwreset',
+    title: 'Delegate Password Reset on an OU',
+    desc: 'Grant a helpdesk group the right to reset passwords on user objects in a specific OU - without making them Domain Admins.',
+    tags: ['delegation', 'security'],
+    code: `Import-Module ActiveDirectory
+$ouPath   = "AD:\\OU=Users,OU=BKK,DC=corp,DC=com"
+$groupSid = (Get-ADGroup "HelpDesk-BKK").SID
+
+# GUID for Extended Right "User-Force-Change-Password"
+$resetPwRight = [GUID]"00299570-246d-11d0-a768-00aa006e0529"
+# Object-class GUID for 'user'
+$userClass    = [GUID]"bf967aba-0de6-11d0-a285-00aa003049e2"
+
+$acl  = Get-Acl $ouPath
+$rule = New-Object System.DirectoryServices.ActiveDirectoryAccessRule(
+    $groupSid, "ExtendedRight", "Allow",
+    $resetPwRight, "Descendents", $userClass)
+$acl.AddAccessRule($rule)
+Set-Acl -Path $ouPath -AclObject $acl
+
+# Also allow writing pwdLastSet to force 'change at next logon'
+# dsacls alternative (one-liner):
+# dsacls "OU=Users,OU=BKK,DC=corp,DC=com" /I:S /G "CORP\\HelpDesk-BKK:CA;Reset Password;user"`
+  },
+  {
+    id: 'create-site-subnet',
+    title: 'Create AD Site + Subnet + Move DC',
+    desc: 'Build out a new physical location: create the site, map an IP subnet to it, and move the DC into it.',
+    tags: ['replication'],
+    code: `Import-Module ActiveDirectory
+$siteName    = "Bangkok"
+$subnetCidr  = "10.20.0.0/16"
+$siteLink    = "DEFAULTIPSITELINK"
+$dcName      = "DC-BKK-01"
+
+# 1. Create the site (if it does not already exist)
+if (-not (Get-ADReplicationSite -Filter "Name -eq '$siteName'" -ErrorAction SilentlyContinue)) {
+    New-ADReplicationSite -Name $siteName
+}
+
+# 2. Associate the subnet with the site
+New-ADReplicationSubnet -Name $subnetCidr -Site $siteName
+
+# 3. Add site to a site link (so replication can flow)
+Set-ADReplicationSiteLink -Identity $siteLink -SitesIncluded @{Add=$siteName}
+
+# 4. Move the DC into its site (the NTDS Settings object gets relocated)
+Move-ADDirectoryServer -Identity $dcName -Site $siteName
+
+# 5. Verify
+Get-ADReplicationSubnet -Filter * | Select Name, Site
+Get-ADDomainController -Identity $dcName | Select Name, Site`
+  },
+  {
+    id: 'find-unmapped-subnets',
+    title: 'Find Unmapped Client Subnets',
+    desc: 'Scan DC netlogon logs for clients logging on from subnets that are not mapped to any AD site. Classic cause of "slow logons across the WAN".',
+    tags: ['replication', 'health'],
+    code: `# Netlogon logs "NO_CLIENT_SITE" when a client IP does not match any subnet.
+# The log is at %SystemRoot%\\debug\\netlogon.log on each DC.
+
+$dcs = Get-ADDomainController -Filter * | Select-Object -ExpandProperty HostName
+
+$dcs | ForEach-Object {
+  $path = "\\\\$_\\admin$\\debug\\netlogon.log"
+  if (Test-Path $path) {
+    Select-String -Path $path -Pattern "NO_CLIENT_SITE" |
+      ForEach-Object {
+        if ($_ -match "NO_CLIENT_SITE:\\s+(\\S+)\\s+(\\d+\\.\\d+\\.\\d+\\.\\d+)") {
+          [pscustomobject]@{
+            DC     = $_
+            Client = $Matches[1]
+            IP     = $Matches[2]
+          }
+        }
+      }
+  }
+} | Group-Object IP | Sort-Object Count -Descending |
+    Select-Object Count, Name -First 20`
+  },
+  {
+    id: 'dns-scavenging',
+    title: 'Enable DNS Scavenging on All Zones',
+    desc: 'Enable aging/scavenging at the server and zone level - prevents stale A records from causing Kerberos failures.',
+    tags: ['dns', 'health'],
+    code: `# Enable scavenging on every DNS server in the forest
+Get-ADDomainController -Filter * | ForEach-Object {
+  Set-DnsServerScavenging -ComputerName $_.HostName \`
+    -ScavengingState $true -ScavengingInterval 7.00:00:00 \`
+    -ApplyOnAllZones
+}
+
+# Enable aging on every AD-integrated primary zone
+Get-DnsServerZone | Where-Object {
+  $_.ZoneType -eq 'Primary' -and $_.IsDsIntegrated -eq $true
+} | ForEach-Object {
+  Set-DnsServerZoneAging -Name $_.ZoneName \`
+    -Aging $true -RefreshInterval 7.00:00:00 -NoRefreshInterval 7.00:00:00
+}
+
+# Verify
+Get-DnsServerScavenging
+Get-DnsServerZoneAging -Name "corp.com"`
+  },
+  {
+    id: 'dns-srv-check',
+    title: 'Validate Critical AD SRV Records',
+    desc: 'Confirm the SRV records that domain clients, Kerberos, and GC lookups depend on are present and resolvable.',
+    tags: ['dns', 'health'],
+    code: `$domain = (Get-ADDomain).DNSRoot
+$forest = (Get-ADForest).Name
+
+$records = @(
+  "_ldap._tcp.dc._msdcs.$domain",
+  "_kerberos._tcp.dc._msdcs.$domain",
+  "_kerberos._tcp.$domain",
+  "_ldap._tcp.pdc._msdcs.$domain",
+  "_gc._tcp.$forest",
+  "_ldap._tcp.gc._msdcs.$forest"
+)
+
+$records | ForEach-Object {
+  $r = Resolve-DnsName -Name $_ -Type SRV -ErrorAction SilentlyContinue
+  [pscustomobject]@{
+    Name      = $_
+    Found     = [bool]$r
+    Targets   = ($r | Where-Object Type -eq 'SRV' | ForEach-Object NameTarget) -join ','
+  }
+} | Format-Table -AutoSize`
+  },
+  {
+    id: 'rotate-sso-password',
+    title: 'Rotate AZUREADSSOACC Password (Seamless SSO)',
+    desc: 'The hidden computer account that holds the Kerberos ticket for Entra ID must be rotated every 30 days. Skipping this is a known attack path (Silver SAML).',
+    tags: ['hybrid', 'security'],
+    code: `# Run on the Entra Connect server as an on-prem Domain Admin + Global Admin.
+Import-Module "C:\\Program Files\\Microsoft Azure Active Directory Connect\\AzureADSSO.psd1"
+
+New-AzureADSSOAuthenticationContext    # prompts for Global Admin creds
+Get-AzureADSSOStatus | ConvertFrom-Json | Format-List   # which domains are enabled?
+
+# Rotate the password (prompts for Domain Admin creds for the on-prem account)
+Update-AzureADSSOForest
+
+# Verify - LastModified should be "just now" on AZUREADSSOACC$
+Get-ADComputer AZUREADSSOACC -Properties PasswordLastSet |
+  Select Name, PasswordLastSet, Enabled`
+  },
+  {
+    id: 'entra-sync-status',
+    title: 'Entra Connect: Status + Force Sync',
+    desc: 'Check the current sync cycle state, last sync time, and kick off a delta or initial sync on demand.',
+    tags: ['hybrid', 'health'],
+    code: `# Run on the Entra Connect / Cloud Sync server
+Import-Module ADSync
+
+# Scheduler state and intervals
+Get-ADSyncScheduler
+
+# Last run of each connector
+Get-ADSyncConnectorRunStatus
+
+# Any sync errors in the current cycle
+Get-ADSyncConnectorStatistics
+
+# Trigger a delta sync (every 30 min anyway - this just does it now)
+Start-ADSyncSyncCycle -PolicyType Delta
+
+# Rare: full initial sync (long running, use only after schema changes)
+# Start-ADSyncSyncCycle -PolicyType Initial`
+  },
+  {
+    id: 'gpo-orphans',
+    title: 'Find Unlinked and Orphan GPOs',
+    desc: 'Report GPOs that are not linked anywhere (candidates for deletion) and SYSVOL folders that have no matching GPO object (true orphans).',
+    tags: ['gpo', 'health'],
+    code: `Import-Module GroupPolicy, ActiveDirectory
+
+# 1. Unlinked GPOs - exist in AD but not linked to any site/domain/OU
+$unlinked = Get-GPO -All | ForEach-Object {
+  $xml = [xml](Get-GPOReport -Guid $_.Id -ReportType Xml)
+  if (-not $xml.GPO.LinksTo) {
+    [pscustomobject]@{
+      Name        = $_.DisplayName
+      Id          = $_.Id
+      Created     = $_.CreationTime
+      Modified    = $_.ModificationTime
+    }
+  }
+}
+$unlinked | Format-Table -AutoSize
+
+# 2. Orphan SYSVOL folders - folder exists but no GPO in AD points to it
+$domain = (Get-ADDomain).DNSRoot
+$policyGuids = (Get-GPO -All).Id.Guid
+Get-ChildItem "\\\\$domain\\SYSVOL\\$domain\\Policies" -Directory |
+  Where-Object { ($_.Name -replace '[{}]','') -notin $policyGuids } |
+  Select Name, LastWriteTime`
+  },
+  {
+    id: 'metadata-cleanup',
+    title: 'Metadata Cleanup for a Dead DC',
+    desc: 'Remove all AD, DNS and Sites references for a DC that was not demoted gracefully. Run after confirming the DC is permanently gone.',
+    tags: ['backup', 'replication'],
+    code: `# Replace with the dead DC's short name
+$deadDC = "DC-OLD-01"
+$site   = "Bangkok"
+
+# 1. Remove from AD (requires RSAT AD module, Server 2008 R2+)
+Remove-ADDomainController -Identity $deadDC -ForceRemoval
+
+# If the above fails (DC was never promoted cleanly), fall back to ntdsutil:
+# ntdsutil "metadata cleanup" "remove selected server $deadDC" quit quit
+
+# 2. Clean up Sites and Services - NTDS Settings object and server
+Remove-ADObject -Identity "CN=NTDS Settings,CN=$deadDC,CN=Servers,CN=$site,CN=Sites,CN=Configuration,$((Get-ADDomain).DistinguishedName.Replace('DC=','DC='))" -Recursive -Confirm:$false
+
+# 3. Remove the DNS host records
+Get-DnsServerResourceRecord -ZoneName (Get-ADDomain).DNSRoot |
+  Where-Object { $_.RecordData.IPv4Address -or $_.HostName -like "*$deadDC*" } |
+  ForEach-Object {
+    Remove-DnsServerResourceRecord -ZoneName (Get-ADDomain).DNSRoot \`
+      -InputObject $_ -Force -Confirm:$false
+  }
+
+# 4. Validate
+Get-ADDomainController -Filter * | Select Name, Site
+dcdiag /test:kccevent`
+  },
+  {
+    id: 'restore-deleted-object',
+    title: 'Restore a Deleted Object from Recycle Bin',
+    desc: 'Recover a user, group, or whole OU that was accidentally deleted - as long as you are inside the tombstone lifetime window (180 days default).',
+    tags: ['backup'],
+    code: `# Prereq: AD Recycle Bin must already be enabled
+# Enable-ADOptionalFeature -Identity 'Recycle Bin Feature' -Scope ForestOrConfigurationSet -Target (Get-ADForest).Name
+
+# Find the deleted object (works for users, groups, OUs, computers)
+$deleted = Get-ADObject -Filter 'IsDeleted -eq $true -and Name -like "*Smith*"' \`
+  -IncludeDeletedObjects -Properties LastKnownParent, SamAccountName, whenChanged |
+  Select Name, SamAccountName, LastKnownParent, whenChanged, ObjectGUID
+$deleted | Format-Table -AutoSize
+
+# Restore in place (parent OU must still exist)
+$deleted | ForEach-Object {
+  Restore-ADObject -Identity $_.ObjectGUID
+}
+
+# If the parent OU was also deleted, restore that FIRST:
+# Restore-ADObject -Identity <OU-GUID>
+# then restore children.
+
+# If outside tombstone lifetime - the object is truly gone and must be
+# recreated. Recycle Bin is NOT a replacement for backups.`
+  },
+  {
+    id: 'preflight-fl-raise',
+    title: 'Pre-Flight Check Before Raising FFL/DFL',
+    desc: 'Validate that every DC is on the target OS, replication is clean, and SYSVOL is on DFSR - the three blockers to a successful functional-level raise.',
+    tags: ['migration', 'health'],
+    code: `Import-Module ActiveDirectory
+
+Write-Host "\`n== 1. Current functional levels ==" -ForegroundColor Cyan
+Get-ADForest | Select ForestMode, Name
+Get-ADDomain | Select DomainMode, DNSRoot
+
+Write-Host "\`n== 2. Oldest DC OS ==" -ForegroundColor Cyan
+Get-ADDomainController -Filter * |
+  Select Name, OperatingSystem, OperatingSystemVersion, Site |
+  Sort OperatingSystem
+
+Write-Host "\`n== 3. Replication health ==" -ForegroundColor Cyan
+repadmin /replsummary
+
+Write-Host "\`n== 4. SYSVOL on DFSR? (3 = Eliminated / DFSR, anything else = FRS) ==" -ForegroundColor Cyan
+dfsrmig /GetMigrationState
+
+Write-Host "\`n== 5. dcdiag quick check ==" -ForegroundColor Cyan
+dcdiag /e /q
+
+Write-Host "\`n== 6. Schema version ==" -ForegroundColor Cyan
+(Get-ADObject "CN=Schema,$((Get-ADRootDSE).configurationNamingContext)" \`
+  -Properties objectVersion).objectVersion
+# 47=2003R2 56=2008R2 69=2016 87=2019 88=2022 92=2025`
+  },
 ];
 
 function renderRecipes() {
@@ -1374,6 +1685,242 @@ const TEMPLATES = {
       ['Hybrid', 'Conditional Access policies enforcing MFA', '', '', ''],
       ['Hybrid', 'Hybrid Join configured where supported', '', '', ''],
       ['Hybrid', 'Entra Connect Health agent installed and reporting', '', '', ''],
+    ]
+  },
+  'fsmo-replication-topology': {
+    title: 'FSMO & Replication Topology Worksheet',
+    headers: ['Section', 'Item', 'Value / Holder', 'Site', 'Notes'],
+    rows: [
+      ['SECTION: FSMO ROLE HOLDERS', '', '', '', ''],
+      ['FSMO', 'Schema Master (forest)', '', '', 'Co-locate with Domain Naming on forest root'],
+      ['FSMO', 'Domain Naming Master (forest)', '', '', 'Forest root DC'],
+      ['FSMO', 'PDC Emulator (per domain)', '', '', 'Best-connected DC; time source; GPO author target'],
+      ['FSMO', 'RID Master (per domain)', '', '', 'Reliable DC in each domain'],
+      ['FSMO', 'Infrastructure Master (per domain)', '', '', 'Non-GC in multi-domain forest; anywhere if single-domain or all-GC'],
+      ['FSMO', 'FSMO placement reviewed in last 12 months', '', '', 'Audit cadence'],
+      ['FSMO', 'Seize procedure documented and tested', '', '', ''],
+      ['SECTION: DOMAIN CONTROLLERS', '', '', '', ''],
+      ['DC', 'DC-01 name / OS / IP', '', '', ''],
+      ['DC', 'DC-02 name / OS / IP', '', '', ''],
+      ['DC', 'DC-03 name / OS / IP', '', '', ''],
+      ['DC', 'DC-04 name / OS / IP', '', '', ''],
+      ['DC', 'DC-05 name / OS / IP', '', '', ''],
+      ['DC', 'Oldest DC OS version', '', '', 'Blocker for FFL/DFL raise'],
+      ['DC', 'Number of Global Catalogs per site', '', '', 'Min 1 per site'],
+      ['DC', 'Any RODCs?', '', '', ''],
+      ['SECTION: AD SITES', '', '', '', ''],
+      ['Site', 'Site 1 name / location', '', '', ''],
+      ['Site', 'Site 2 name / location', '', '', ''],
+      ['Site', 'Site 3 name / location', '', '', ''],
+      ['Site', 'Default-First-Site-Name still contains DCs?', '', '', 'Should be No - move everything out'],
+      ['SECTION: SUBNETS', '', '', '', ''],
+      ['Subnet', 'Subnet 1 CIDR -> Site', '', '', ''],
+      ['Subnet', 'Subnet 2 CIDR -> Site', '', '', ''],
+      ['Subnet', 'Subnet 3 CIDR -> Site', '', '', ''],
+      ['Subnet', 'Unmapped subnets found in netlogon.log?', '', '', 'Event 5807'],
+      ['SECTION: SITE LINKS', '', '', '', ''],
+      ['Link', 'Site Link 1 (sites, cost, interval)', '', '', ''],
+      ['Link', 'Site Link 2 (sites, cost, interval)', '', '', ''],
+      ['Link', 'Site Link 3 (sites, cost, interval)', '', '', ''],
+      ['Link', 'Any preferred bridgeheads configured?', '', '', 'Usually unnecessary'],
+      ['SECTION: REPLICATION HEALTH', '', '', '', ''],
+      ['Health', 'repadmin /replsummary clean on all DCs', '', '', ''],
+      ['Health', 'SYSVOL on DFSR (not FRS)', '', '', 'dfsrmig /GetMigrationState = 3'],
+      ['Health', 'Longest replication latency observed (min)', '', '', ''],
+      ['Health', 'Lingering objects found in last audit?', '', '', 'repadmin /removelingeringobjects'],
+      ['Health', 'dcdiag /test:replications clean on all DCs', '', '', ''],
+    ]
+  },
+  'dns-inventory': {
+    title: 'DNS Zone & SRV Record Inventory',
+    headers: ['Category', 'Item', 'Value / Status', 'Notes'],
+    rows: [
+      ['CATEGORY: FORWARD ZONES', '', '', ''],
+      ['Zone', 'Primary AD-integrated zone name', '', 'e.g., corp.com'],
+      ['Zone', 'Replication scope (forest / domain)', '', 'Forest for multi-domain'],
+      ['Zone', 'Secure dynamic updates only?', '', 'Must be yes'],
+      ['Zone', 'Additional application partitions?', '', ''],
+      ['Zone', 'Any file-backed primary zones?', '', 'Should be No for AD zones'],
+      ['CATEGORY: REVERSE ZONES', '', '', ''],
+      ['Reverse', 'Reverse zone for subnet 1 exists', '', ''],
+      ['Reverse', 'Reverse zone for subnet 2 exists', '', ''],
+      ['Reverse', 'Reverse zone for subnet 3 exists', '', ''],
+      ['Reverse', 'PTR records for every DC exist and resolve', '', 'nslookup <DC-IP>'],
+      ['CATEGORY: FORWARDERS', '', '', ''],
+      ['Forwarder', 'Root hints disabled where internal-only', '', ''],
+      ['Forwarder', 'Primary external forwarder', '', 'ISP or 1.1.1.1 / 8.8.8.8'],
+      ['Forwarder', 'Secondary external forwarder', '', ''],
+      ['Forwarder', 'Conditional forwarder - partner domain 1', '', ''],
+      ['Forwarder', 'Conditional forwarder - partner domain 2', '', ''],
+      ['Forwarder', 'Conditional forwarder - trusted forest', '', ''],
+      ['CATEGORY: SCAVENGING', '', '', ''],
+      ['Scavenging', 'Server-level scavenging enabled on every DC', '', 'Get-DnsServerScavenging'],
+      ['Scavenging', 'Zone-level aging enabled on every AD zone', '', 'Get-DnsServerZoneAging'],
+      ['Scavenging', 'No-Refresh interval (default 7 days)', '', ''],
+      ['Scavenging', 'Refresh interval (default 7 days)', '', ''],
+      ['Scavenging', 'Scavenging period (default 7 days)', '', ''],
+      ['CATEGORY: SRV RECORDS (must resolve)', '', '', ''],
+      ['SRV', '_ldap._tcp.dc._msdcs.<domain>', '', 'Locate any DC'],
+      ['SRV', '_kerberos._tcp.dc._msdcs.<domain>', '', 'Kerberos KDC'],
+      ['SRV', '_kerberos._tcp.<domain>', '', ''],
+      ['SRV', '_ldap._tcp.pdc._msdcs.<domain>', '', 'Find PDC'],
+      ['SRV', '_gc._tcp.<forest>', '', 'GC discovery, port 3268'],
+      ['SRV', '_ldap._tcp.gc._msdcs.<forest>', '', ''],
+      ['SRV', 'Per-site SRV _ldap._tcp.<site>._sites.dc._msdcs.<domain>', '', 'Locate DC in client site'],
+      ['CATEGORY: SPLIT-BRAIN / PUBLIC', '', '', ''],
+      ['Split', 'Internal AD namespace != public domain, OR split-brain owned', '', ''],
+      ['Split', 'External A records that could shadow internal ones audited', '', ''],
+      ['Split', 'DNSSEC on public zone (if applicable)', '', ''],
+      ['CATEGORY: CLIENT DNS CONFIG', '', '', ''],
+      ['Client', 'DCs point primary DNS at another DC, secondary at loopback', '', 'No island mode'],
+      ['Client', 'DHCP scopes hand out AD DNS servers (no public resolvers)', '', ''],
+      ['Client', 'VPN clients receive internal DNS', '', ''],
+      ['Client', 'dcdiag /test:dns /v clean', '', ''],
+    ]
+  },
+  'gpo-inventory': {
+    title: 'GPO Inventory & Audit Worksheet',
+    headers: ['Category', 'GPO / Setting', 'Scope / Link', 'Status', 'Notes'],
+    rows: [
+      ['CATEGORY: FOUNDATIONAL GPOS', '', '', '', ''],
+      ['Foundational', 'Default Domain Policy (passwords / lockout ONLY)', 'Domain root', '', 'Do not add other settings here'],
+      ['Foundational', 'Default Domain Controllers Policy', 'Domain Controllers OU', '', 'Keep MS defaults; add new GPO for custom'],
+      ['Foundational', 'Microsoft Security Baseline - Member Server', 'Member servers OU', '', 'From Security Compliance Toolkit'],
+      ['Foundational', 'Microsoft Security Baseline - Domain Controller', 'Domain Controllers OU', '', ''],
+      ['Foundational', 'Microsoft Security Baseline - Windows 10/11', 'Workstations OU', '', ''],
+      ['CATEGORY: SECURITY HARDENING', '', '', '', ''],
+      ['Hardening', 'Disable SMB1', 'All computers', '', ''],
+      ['Hardening', 'SMB signing required', 'All computers', '', ''],
+      ['Hardening', 'LDAP signing + channel binding required', 'Domain Controllers', '', ''],
+      ['Hardening', 'TLS 1.0 / 1.1 disabled', 'All servers', '', ''],
+      ['Hardening', 'WDigest cleartext disabled', 'All computers', '', ''],
+      ['Hardening', 'Credential Guard enabled', 'Tier 0 / Tier 1 servers', '', ''],
+      ['Hardening', 'Restricted Admin for RDP', 'All servers', '', ''],
+      ['Hardening', 'Windows LAPS policy', 'All computers', '', ''],
+      ['Hardening', 'Print Spooler disabled on DCs', 'Domain Controllers', '', 'PrintNightmare'],
+      ['CATEGORY: USER EXPERIENCE', '', '', '', ''],
+      ['UX', 'Drive mappings (GPP)', 'User OUs', '', 'Item-level targeting'],
+      ['UX', 'Printer deployment (GPP)', 'Site or OU', '', ''],
+      ['UX', 'Desktop background / corporate branding', 'User OUs', '', ''],
+      ['UX', 'OneDrive Known Folder Move', 'User OUs', '', ''],
+      ['CATEGORY: AUDIT POLICY', '', '', '', ''],
+      ['Audit', 'Advanced Audit Policy baseline', 'All computers', '', 'Not legacy audit policy'],
+      ['Audit', 'Credential validation (4776) success+failure', 'Domain Controllers', '', ''],
+      ['Audit', 'Kerberos auth service (4768/4771)', 'Domain Controllers', '', ''],
+      ['Audit', 'Kerberos service ticket (4769)', 'Domain Controllers', '', ''],
+      ['Audit', 'Account management (4720/4728/4732)', 'All DCs', '', ''],
+      ['Audit', 'DS Access (4662) for sensitive attributes', 'Domain Controllers', '', 'DCSync detection'],
+      ['CATEGORY: HYGIENE', '', '', '', ''],
+      ['Hygiene', 'Unlinked GPOs cleaned up quarterly', '', '', 'Audit via Get-GPOReport'],
+      ['Hygiene', 'Orphan SYSVOL folders removed', '', '', ''],
+      ['Hygiene', 'WMI filters inventoried; stale ones removed', '', '', ''],
+      ['Hygiene', 'Central Store populated with latest ADMX', '', '', '\\\\<domain>\\SYSVOL\\<domain>\\Policies\\PolicyDefinitions'],
+      ['Hygiene', 'Vendor ADMX (Chrome, Firefox, Office) in Central Store', '', '', ''],
+      ['Hygiene', 'GPP cpassword audit (MS14-025) clean', '', '', 'grep SYSVOL for cpassword'],
+      ['Hygiene', 'Loopback processing GPOs documented', '', '', 'Merge vs Replace'],
+      ['Hygiene', 'Block Inheritance on any OU - documented reason', '', '', ''],
+      ['Hygiene', 'Enforced GPO links inventoried', '', '', ''],
+      ['CATEGORY: CHANGE CONTROL', '', '', '', ''],
+      ['Change', 'Weekly Backup-GPO -All to secure location', '', '', ''],
+      ['Change', 'GPO change goes through change ticket', '', '', ''],
+      ['Change', 'Pre-prod GPO test environment exists', '', '', ''],
+      ['Change', 'GPO owner and purpose documented in Description', '', '', ''],
+    ]
+  },
+  'backup-dr-runbook': {
+    title: 'Backup, Restore & Forest Recovery Runbook',
+    headers: ['Phase', 'Step', 'Owner', 'Target / Result', 'Status', 'Evidence'],
+    rows: [
+      ['PHASE 0: STANDING STATE', '', '', '', '', ''],
+      ['Baseline', 'AD Recycle Bin enabled', '', '', 'Not Started', ''],
+      ['Baseline', 'Daily System State backup of every DC', '', '', 'Not Started', ''],
+      ['Baseline', 'At least 2 DCs per domain backed up on different schedules', '', '', 'Not Started', ''],
+      ['Baseline', 'Backup retention >= 180 days (tombstone lifetime)', '', '', 'Not Started', ''],
+      ['Baseline', 'One off-site / air-gapped copy weekly', '', '', 'Not Started', ''],
+      ['Baseline', 'DSRM password stored in secure vault (per DC)', '', '', 'Not Started', ''],
+      ['Baseline', 'Weekly GPO backup (Backup-GPO -All)', '', '', 'Not Started', ''],
+      ['Baseline', 'CA database backup (if AD CS)', '', '', 'Not Started', ''],
+      ['Baseline', 'DHCP + DNS export scheduled', '', '', 'Not Started', ''],
+      ['PHASE 1: QUARTERLY DRILL - SINGLE DC RESTORE', '', '', '', '', ''],
+      ['Drill', 'Pick one DC, restore from last backup to isolated lab network', '', '', 'Not Started', ''],
+      ['Drill', 'Non-authoritative restore boots cleanly', '', '', 'Not Started', ''],
+      ['Drill', 'Replication converges with partners in lab', '', '', 'Not Started', ''],
+      ['Drill', 'Document time-to-restore (RTO) vs target', '', '', 'Not Started', ''],
+      ['PHASE 2: AUTHORITATIVE RESTORE (OU / OBJECT)', '', '', '', '', ''],
+      ['Authoritative', 'Identify deleted object GUID', '', '', 'Not Started', ''],
+      ['Authoritative', 'Try AD Recycle Bin first (fast path)', '', '', 'Not Started', ''],
+      ['Authoritative', 'If outside Recycle Bin - boot DC in DSRM', '', '', 'Not Started', ''],
+      ['Authoritative', 'ntdsutil "authoritative restore" "restore subtree <DN>"', '', '', 'Not Started', ''],
+      ['Authoritative', 'Reboot, verify object exists, verify USN bumped', '', '', 'Not Started', ''],
+      ['Authoritative', 'Force replication outbound to partners', '', '', 'Not Started', ''],
+      ['PHASE 3: FOREST RECOVERY (RANSOMWARE / COMPROMISE)', '', '', '', '', ''],
+      ['Forest', 'Incident declared - isolate every DC from network', '', '', 'Not Started', ''],
+      ['Forest', 'Identify last-known-good System State per domain', '', '', 'Not Started', ''],
+      ['Forest', 'Pick one DC per domain, restore to isolated network', '', '', 'Not Started', ''],
+      ['Forest', 'Seize all FSMO roles onto restored DC', '', '', 'Not Started', ''],
+      ['Forest', 'Metadata cleanup of every other DC', '', '', 'Not Started', ''],
+      ['Forest', 'Raise RID pool and invalidate current pool', '', '', 'Not Started', ''],
+      ['Forest', 'Reset krbtgt password (TWICE, 10h+ apart)', '', '', 'Not Started', ''],
+      ['Forest', 'Reset trust passwords for all trusts', '', '', 'Not Started', ''],
+      ['Forest', 'Reset computer account passwords for all DCs', '', '', 'Not Started', ''],
+      ['Forest', 'Reset all privileged user passwords', '', '', 'Not Started', ''],
+      ['Forest', 'Clean DNS and SYSVOL of stale records', '', '', 'Not Started', ''],
+      ['Forest', 'Rebuild remaining DCs from scratch (DCPROMO)', '', '', 'Not Started', ''],
+      ['Forest', 'Reconnect to production network - monitored', '', '', 'Not Started', ''],
+      ['Forest', 'Post-recovery audit for persistence mechanisms', '', '', 'Not Started', ''],
+      ['PHASE 4: COMMUNICATIONS', '', '', '', '', ''],
+      ['Comms', 'Who declares the incident?', '', '', 'Not Started', ''],
+      ['Comms', 'Who notifies legal / compliance?', '', '', 'Not Started', ''],
+      ['Comms', 'Who speaks to execs / board?', '', '', 'Not Started', ''],
+      ['Comms', 'Who speaks to customers / press?', '', '', 'Not Started', ''],
+      ['Comms', 'Status page / internal channel for updates', '', '', 'Not Started', ''],
+      ['Comms', 'Postmortem (blameless) within 14 days', '', '', 'Not Started', ''],
+    ]
+  },
+  'event-id-alerts': {
+    title: 'AD Event ID Alert Catalogue',
+    headers: ['Event ID', 'Log', 'What it means', 'Severity', 'Baseline / Threshold', 'SIEM Action'],
+    rows: [
+      ['SECTION: AUTHENTICATION', '', '', '', '', ''],
+      ['4624', 'Security', 'Successful logon (type 3 = network, 10 = RDP, 2 = interactive)', 'Info', 'Baseline per account', 'Correlate; profile'],
+      ['4625', 'Security', 'Failed logon', 'Warning', 'Spike > 10/min per user', 'Password spray alert'],
+      ['4648', 'Security', 'Explicit credential use (runas)', 'Warning', 'Any from non-admin workstation', 'Lateral movement signal'],
+      ['4672', 'Security', 'Special privileges assigned at logon (admin)', 'Info', 'Match against known admin accounts', 'Flag unknown accounts'],
+      ['4768', 'Security', 'Kerberos TGT requested', 'Info', 'Per-user baseline', 'Spray: many users, same source'],
+      ['4769', 'Security', 'Kerberos service ticket requested', 'Info-Warning', 'RC4 + privileged = Kerberoasting', 'Alert on RC4 (0x17)'],
+      ['4771', 'Security', 'Kerberos pre-auth failed', 'Warning', 'Spike > 10/min', 'Password spray'],
+      ['4776', 'Security', 'NTLM auth attempted', 'Warning', 'Should trend to zero over time', 'Alert on NTLMv1'],
+      ['SECTION: ACCOUNT MANAGEMENT', '', '', '', '', ''],
+      ['4720', 'Security', 'User account created', 'Alert', 'Any outside change window', 'High-priority alert'],
+      ['4722', 'Security', 'User account enabled', 'Warning', 'Correlate with 4725', ''],
+      ['4725', 'Security', 'User account disabled', 'Warning', '', ''],
+      ['4726', 'Security', 'User account deleted', 'Alert', '', 'Correlate with ticket'],
+      ['4728', 'Security', 'Member added to global group', 'Alert', 'Privileged groups = critical', 'Alert on DA / EA / Schema'],
+      ['4732', 'Security', 'Member added to domain-local group', 'Alert', 'Same', ''],
+      ['4756', 'Security', 'Member added to universal group', 'Alert', 'Enterprise Admins = critical', ''],
+      ['4738', 'Security', 'User account changed', 'Warning', 'Watch adminCount, SPN additions', ''],
+      ['4740', 'Security', 'User account locked out', 'Info-Warning', 'Spike = spray', ''],
+      ['SECTION: DS OBJECT ACCESS', '', '', '', '', ''],
+      ['4662', 'Security', 'DS object access (requires audit policy)', 'Variable', 'DS-Replication-Get-Changes GUID = DCSync', 'Alert on DCSync by non-DC'],
+      ['5136', 'Security', 'Directory object modified', 'Warning', 'Sensitive OUs / attrs', ''],
+      ['5137', 'Security', 'Directory object created', 'Warning', '', ''],
+      ['5141', 'Security', 'Directory object deleted', 'Warning', '', ''],
+      ['SECTION: DIRECTORY SERVICE', '', '', '', '', ''],
+      ['1202', 'Directory Service', 'Expired security protocol SSL/TLS used', 'Warning', '', ''],
+      ['1644', 'Directory Service', 'Expensive / inefficient LDAP query', 'Warning', 'Any > 1 per minute', 'App misbehaving'],
+      ['1864', 'Directory Service', 'Replication partner not available for N days', 'Alert', '>3 days = alert', ''],
+      ['2042', 'Directory Service', 'Replication outside tombstone lifetime', 'Alert', 'Any occurrence', 'Lingering objects - clean up'],
+      ['SECTION: DNS SERVER', '', '', '', '', ''],
+      ['4013', 'DNS Server', 'AD-integrated zone data not yet loaded', 'Warning', 'Startup only', ''],
+      ['4015', 'DNS Server', 'AD-integrated DNS failed to load zone', 'Alert', 'Any', 'DNS broken on this DC'],
+      ['4016', 'DNS Server', 'AD-integrated DNS replication problem', 'Alert', 'Any', ''],
+      ['SECTION: NETLOGON', '', '', '', '', ''],
+      ['5807', 'System', 'Client logon from unmapped subnet', 'Warning', 'Spike = missing subnet', 'Add subnet to AD site'],
+      ['5722', 'System', 'Secure channel to workstation broken', 'Warning', '', ''],
+      ['SECTION: DFSR / SYSVOL', '', '', '', '', ''],
+      ['2213', 'DFS Replication', 'DFSR volume recovery completed', 'Info', '', ''],
+      ['4012', 'DFS Replication', 'DFSR replication has not synced for N days', 'Alert', '>60 days = journal wrap risk', ''],
+      ['5002', 'DFS Replication', 'DFSR connection lost', 'Warning', '', ''],
     ]
   },
 };
