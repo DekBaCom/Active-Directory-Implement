@@ -409,6 +409,16 @@ const SEARCH_INDEX = [
   { title: 'Entra DS hybrid implementation', hash: '#entra-ds', keywords: 'entra ds hybrid entra connect password hash sync phs forest trust vpn expressroute' },
   { title: 'Entra DS Cloud-Only Architecture', hash: '#architecture', keywords: 'entra ds cloud only architecture design diagram azure vnet dc managed workloads avd files sql' },
   { title: 'Entra DS Hybrid Architecture', hash: '#architecture', keywords: 'entra ds hybrid architecture design diagram on-prem ad ds entra connect phs forest trust expressroute' },
+  // Chapters 13-21 (deep-dives)
+  { title: 'FSMO Roles Deep-Dive', hash: '#fsmo-roles', keywords: 'fsmo schema master domain naming rid pdc emulator infrastructure transfer seize ntdsutil metadata cleanup w32tm time hierarchy netdom query' },
+  { title: 'Sites, Subnets & Replication', hash: '#sites-replication', keywords: 'sites subnets replication site link bridgehead istg kcc dfsr frs sysvol repadmin replsummary showrepl syncall intra-site inter-site' },
+  { title: 'DNS for Active Directory', hash: '#dns-for-ad', keywords: 'dns ad-integrated zone srv record scavenging conditional forwarder reverse lookup ptr split-brain nltest nslookup kerberos resolution' },
+  { title: 'OU Design, Delegation & Service Accounts', hash: '#ou-delegation', keywords: 'ou design delegation tier 0 1 2 paw agdlp protected users authentication policy silos gmsa dmsa managed service account kdsrootkey install-adserviceaccount' },
+  { title: 'Hybrid Identity (Entra Connect)', hash: '#hybrid-identity', keywords: 'hybrid identity entra connect cloud sync phs pta federation adfs seamless sso azureadssoacc password writeback device join register hybrid-joined upn source anchor ms-ds-consistencyguid' },
+  { title: 'Group Policy Deep-Dive', hash: '#group-policy', keywords: 'group policy gpo lsdou local site domain ou inheritance block enforce security filtering wmi filter loopback preferences central store admx adml gpresult gpupdate invoke-gpupdate backup-gpo' },
+  { title: 'Backup, Restore & Disaster Recovery', hash: '#backup-dr', keywords: 'backup restore system state ntds.dit sysvol tombstone lifetime recycle bin authoritative non-authoritative forest recovery runbook krbtgt rotation ransomware dcpromo metadata cleanup' },
+  { title: 'Monitoring & Troubleshooting', hash: '#monitoring', keywords: 'monitoring troubleshooting dcdiag repadmin event viewer event id 4624 4625 4648 4728 4768 4769 4776 5136 1644 1864 2042 lingering objects mdi sentinel perfmon ldap searches' },
+  { title: 'Migration & Upgrade', hash: '#migration', keywords: 'migration upgrade in-place swing dcpromo admt pes forest functional level domain functional level ffl dfl cross-forest sidhistory cloud sync pre-flight checklist rollback' },
 ];
 
 function openSearch() {

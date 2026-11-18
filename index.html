@@ -69,15 +69,24 @@
         <ul class="nav-dropdown">
           <li><a href="#implementation" class="nav-drop-link"><span class="dl-num">04</span> Implementation</a></li>
           <li><a href="#architecture" class="nav-drop-link"><span class="dl-num">05</span> Architecture</a></li>
+          <li><a href="#fsmo-roles" class="nav-drop-link"><span class="dl-num">13</span> FSMO Roles</a></li>
+          <li><a href="#sites-replication" class="nav-drop-link"><span class="dl-num">14</span> Sites &amp; Replication</a></li>
+          <li><a href="#dns-for-ad" class="nav-drop-link"><span class="dl-num">15</span> DNS for AD</a></li>
+          <li><a href="#ou-delegation" class="nav-drop-link"><span class="dl-num">16</span> OU, Delegation &amp; gMSA</a></li>
+          <li><a href="#hybrid-identity" class="nav-drop-link"><span class="dl-num">17</span> Hybrid Identity</a></li>
           <li><a href="#calculator" class="nav-drop-link"><span class="dl-num">06</span> Cost Calculator</a></li>
         </ul>
       </li>
       <li class="nav-group">
         <button class="nav-link nav-group-btn" aria-haspopup="true" aria-expanded="false">Operate <span class="caret">&#9662;</span></button>
         <ul class="nav-dropdown">
+          <li><a href="#group-policy" class="nav-drop-link"><span class="dl-num">18</span> Group Policy</a></li>
           <li><a href="#best-practices" class="nav-drop-link"><span class="dl-num">07</span> Best Practices</a></li>
+          <li><a href="#backup-dr" class="nav-drop-link"><span class="dl-num">19</span> Backup &amp; DR</a></li>
+          <li><a href="#monitoring" class="nav-drop-link"><span class="dl-num">20</span> Monitoring</a></li>
           <li><a href="#security" class="nav-drop-link"><span class="dl-num">08</span> Attacks &amp; Defense</a></li>
           <li><a href="#powershell" class="nav-drop-link"><span class="dl-num">09</span> PowerShell Recipes</a></li>
+          <li><a href="#migration" class="nav-drop-link"><span class="dl-num">21</span> Migration &amp; Upgrade</a></li>
         </ul>
       </li>
       <li class="nav-group">
@@ -2484,8 +2493,1036 @@ repadmin /showrepl</code></pre>
   </div>
 </section>
 
+<!-- ===== CHAPTER 13: FSMO ROLES ===== -->
+<section class="section" id="fsmo-roles">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-badge">Chapter 13</div>
+      <h2 class="section-title">FSMO Roles Deep-Dive</h2>
+      <p class="section-desc">Five special master roles that cannot be multi-mastered: what each does, where to place it, and how to recover one when the holder dies.</p>
+    </div>
+
+    <div class="bp-categories">
+      <div class="bp-category">
+        <div class="bp-icon">&#127970;</div>
+        <h3>Schema Master <small style="color:var(--text-muted);font-weight:400;">(Forest)</small></h3>
+        <ul class="bp-list">
+          <li>Owns changes to the <strong>AD schema</strong> (attribute/object definitions).</li>
+          <li>Used by schema extensions: Exchange, SCCM/MCM, Entra Connect writeback.</li>
+          <li>Offline-tolerant: can be down for days without user impact.</li>
+          <li><strong>Place:</strong> Forest root DC, co-located with Domain Naming.</li>
+        </ul>
+      </div>
+      <div class="bp-category">
+        <div class="bp-icon">&#127760;</div>
+        <h3>Domain Naming Master <small style="color:var(--text-muted);font-weight:400;">(Forest)</small></h3>
+        <ul class="bp-list">
+          <li>Authorizes <strong>add/remove of domains</strong> and application partitions.</li>
+          <li>Required to promote/demote a DC in a new domain.</li>
+          <li>Offline-tolerant for daily ops.</li>
+          <li><strong>Place:</strong> Forest root DC, same box as Schema Master.</li>
+        </ul>
+      </div>
+      <div class="bp-category">
+        <div class="bp-icon">&#128273;</div>
+        <h3>RID Master <small style="color:var(--text-muted);font-weight:400;">(Domain)</small></h3>
+        <ul class="bp-list">
+          <li>Issues <strong>pools of RIDs</strong> (500 at a time) to each DC in the domain.</li>
+          <li>Without it, DCs eventually exhaust RIDs and can't create new security principals.</li>
+          <li>Impact delayed by hours/days depending on pool depletion.</li>
+          <li><strong>Place:</strong> Reliable, well-connected DC in each domain.</li>
+        </ul>
+      </div>
+      <div class="bp-category">
+        <div class="bp-icon">&#9201;</div>
+        <h3>PDC Emulator <small style="color:var(--text-muted);font-weight:400;">(Domain)</small></h3>
+        <ul class="bp-list">
+          <li>Authoritative <strong>time source</strong> for the domain (chain to external NTP).</li>
+          <li>Preferred target for <strong>password changes, GPO edits, account lockouts</strong>.</li>
+          <li>Trust-path anchor for inter-domain auth.</li>
+          <li><strong>Most impactful if offline</strong> &mdash; highest priority to recover.</li>
+          <li><strong>Place:</strong> Best-connected DC, close to users and GPO authors.</li>
+        </ul>
+      </div>
+      <div class="bp-category">
+        <div class="bp-icon">&#128279;</div>
+        <h3>Infrastructure Master <small style="color:var(--text-muted);font-weight:400;">(Domain)</small></h3>
+        <ul class="bp-list">
+          <li>Updates <strong>cross-domain object references</strong> (phantom records).</li>
+          <li>Irrelevant in a <strong>single-domain forest</strong> or if every DC is a GC.</li>
+          <li>In multi-domain forest: must NOT be on a GC (except when all DCs are GCs).</li>
+          <li><strong>Place:</strong> Non-GC DC in multi-domain forests; anywhere in single-domain.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3 class="subsection-title" style="margin-top:32px;">Placement Cheatsheet</h3>
+    <div class="alt-table-wrapper">
+      <table class="alt-table">
+        <thead>
+          <tr><th>Role</th><th>Scope</th><th>How many</th><th>Recommended placement</th><th>Tolerance if offline</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Schema Master</strong></td><td>Forest</td><td>1 per forest</td><td>Forest root DC-01</td><td>Days (no schema changes needed daily)</td></tr>
+          <tr><td><strong>Domain Naming</strong></td><td>Forest</td><td>1 per forest</td><td>Forest root DC-01 (co-locate)</td><td>Days (no domain add/remove)</td></tr>
+          <tr><td><strong>RID Master</strong></td><td>Domain</td><td>1 per domain</td><td>Reliable DC in each domain</td><td>Hours &rarr; days (pool size dependent)</td></tr>
+          <tr><td><strong>PDC Emulator</strong></td><td>Domain</td><td>1 per domain</td><td>Best-connected DC, close to users</td><td><span style="color:var(--danger);">Minutes</span> &mdash; time, GPO, lockouts break</td></tr>
+          <tr><td><strong>Infrastructure</strong></td><td>Domain</td><td>1 per domain</td><td>Non-GC in multi-domain; anywhere in single-domain</td><td>Days</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="subsection-title" style="margin-top:32px;">Inspect, Transfer, and Seize</h3>
+    <div class="code-block">
+      <div class="code-header"><span>PowerShell &mdash; FSMO lifecycle operations</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre><code><span class="comment"># 1. Find the current role holders</span>
+Get-ADForest  | Select-Object SchemaMaster, DomainNamingMaster
+Get-ADDomain  | Select-Object PDCEmulator, RIDMaster, InfrastructureMaster
+netdom query fsmo              <span class="comment"># classic one-liner that shows all 5</span>
+
+<span class="comment"># 2. Graceful transfer (both holders online) &mdash; preferred</span>
+Move-ADDirectoryServerOperationMasterRole `
+  -Identity &quot;DC-02&quot; `
+  -OperationMasterRole PDCEmulator, RIDMaster, InfrastructureMaster
+
+<span class="comment"># 3. Seize (ONLY if the current holder is permanently gone)
+#    WARNING: never bring the old holder back online after seizing.</span>
+Move-ADDirectoryServerOperationMasterRole `
+  -Identity &quot;DC-02&quot; `
+  -OperationMasterRole SchemaMaster, DomainNamingMaster `
+  -Force
+
+<span class="comment"># 4. After seizing a role from a dead DC, clean its metadata</span>
+ntdsutil &quot;metadata cleanup&quot; &quot;remove selected server DC-01&quot; quit quit</code></pre>
+    </div>
+
+    <div class="arch-rec">
+      <strong>&#9888; Golden rule:</strong> Transfer whenever possible; seize only when the holder is permanently gone. If you seize the Schema or RID Master and the original DC later comes back online, it will corrupt the directory &mdash; wipe it instead.
+    </div>
+
+    <h3 class="subsection-title" style="margin-top:32px;">PDC Emulator Time Hierarchy</h3>
+    <div class="note-box">
+      <strong>PDC = the clock.</strong> The forest-root PDC should sync to an <em>external</em> NTP source (<code>pool.ntp.org</code>, <code>time.windows.com</code>, GPS). Every other DC syncs from its domain PDC. Members sync from any DC. Kerberos tolerates only a 5-minute skew by default &mdash; if the PDC drifts, the whole domain stops authenticating.
+    </div>
+    <div class="code-block">
+      <div class="code-header"><span>Configure PDC Emulator as authoritative time source</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre><code>w32tm /config /manualpeerlist:&quot;time.windows.com,0x9 pool.ntp.org,0x9&quot; `
+      /syncfromflags:manual /reliable:yes /update
+Restart-Service w32time
+w32tm /resync /force
+w32tm /query /status      <span class="comment"># should show Source = the external peer</span></code></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ===== CHAPTER 14: SITES, SUBNETS & REPLICATION ===== -->
+<section class="section section-alt" id="sites-replication">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-badge">Chapter 14</div>
+      <h2 class="section-title">Sites, Subnets & Replication</h2>
+      <p class="section-desc">AD replication is automatic &mdash; but only if you tell it where your DCs live. Sites, subnets, and site links shape every login, GPO, and DFS referral in your forest.</p>
+    </div>
+
+    <div class="bp-categories">
+      <div class="bp-category">
+        <div class="bp-icon">&#127970;</div>
+        <h3>Site</h3>
+        <ul class="bp-list">
+          <li>A set of well-connected IP subnets &mdash; typically a physical datacentre or office.</li>
+          <li>Clients prefer DCs <strong>in their own site</strong> for logon, DFS, and SYSVOL.</li>
+          <li>Create one per geographic location with its own DC(s).</li>
+        </ul>
+      </div>
+      <div class="bp-category">
+        <div class="bp-icon">&#127760;</div>
+        <h3>Subnet</h3>
+        <ul class="bp-list">
+          <li>Associates an <strong>IP range</strong> (e.g., <code>10.20.0.0/16</code>) with a site.</li>
+          <li>Without a subnet mapping, clients fall back to a random DC &mdash; often across the WAN.</li>
+          <li>Watch <strong>Event ID 5807</strong> on DCs for unmapped client IPs.</li>
+        </ul>
+      </div>
+      <div class="bp-category">
+        <div class="bp-icon">&#128279;</div>
+        <h3>Site Link</h3>
+        <ul class="bp-list">
+          <li>Defines how replication flows <strong>between sites</strong>.</li>
+          <li>Carries a <strong>cost</strong> (lower = preferred) and a <strong>schedule/interval</strong>.</li>
+          <li>Default: IP transport, cost 100, replicate every 180 min, 24&times;7 open.</li>
+        </ul>
+      </div>
+      <div class="bp-category">
+        <div class="bp-icon">&#128225;</div>
+        <h3>Bridgehead</h3>
+        <ul class="bp-list">
+          <li>Per-site DC elected by the <strong>KCC/ISTG</strong> to handle inter-site replication.</li>
+          <li>Let AD pick automatically unless you have a specific reason to pin.</li>
+          <li>Preferred bridgeheads in <em>NTDS Site Settings</em> remove failover &mdash; use sparingly.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3 class="subsection-title" style="margin-top:32px;">Intra-site vs Inter-site Replication</h3>
+    <div class="alt-table-wrapper">
+      <table class="alt-table">
+        <thead><tr><th>Behaviour</th><th>Intra-site (same site)</th><th>Inter-site (across sites)</th></tr></thead>
+        <tbody>
+          <tr><td>Trigger</td><td>Change notification (near real-time)</td><td>Scheduled, per site-link interval</td></tr>
+          <tr><td>Default latency</td><td>~15 seconds + 3-sec stagger</td><td>15 min minimum, 180 min default</td></tr>
+          <tr><td>Compression</td><td>None (LAN bandwidth cheap)</td><td>Compressed (saves WAN)</td></tr>
+          <tr><td>Topology</td><td>Ring, auto-built by KCC</td><td>Spanning tree via site links</td></tr>
+          <tr><td>Transport</td><td>RPC over IP</td><td>RPC over IP (SMTP legacy, rarely used)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="subsection-title" style="margin-top:32px;">DFSR SYSVOL Replication</h3>
+    <div class="note-box">
+      <strong>FRS is dead.</strong> Windows Server 2019+ refuses to promote a DC into a FRS-replicated SYSVOL. If you're still on FRS, migrate using <code>dfsrmig /SetGlobalState 3</code> (Prepared &rarr; Redirected &rarr; Eliminated) <em>before</em> touching any upgrade. DFSR is faster, resilient to USN rollback, and self-heals after reboots.
+    </div>
+
+    <h3 class="subsection-title" style="margin-top:32px;">repadmin Cookbook</h3>
+    <div class="code-block">
+      <div class="code-header"><span>Day-to-day replication diagnostics</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre><code><span class="comment"># Replication summary &mdash; the single most useful command</span>
+repadmin /replsummary
+
+<span class="comment"># Show every inbound replication partner and last success/failure</span>
+repadmin /showrepl *
+
+<span class="comment"># Force replication for a specific NC to one partner</span>
+repadmin /replicate DC-BKK-02 DC-HQ-01 &quot;DC=corp,DC=com&quot;
+
+<span class="comment"># Force full sync everywhere &mdash; use after fixing site link or firewall</span>
+repadmin /syncall /AdeP
+
+<span class="comment"># Who is the ISTG for a site?</span>
+repadmin /istg
+
+<span class="comment"># Detailed per-partner queue / errors</span>
+repadmin /queue
+repadmin /showutdvec DC-HQ-01 &quot;DC=corp,DC=com&quot;</code></pre>
+    </div>
+
+    <div class="arch-rec">
+      <strong>&#128161; Design rule:</strong> Create one site per physical location, map every subnet to exactly one site, and never leave a DC in the default <em>Default-First-Site-Name</em>. Clients log on to whichever DC claims their subnet &mdash; unmapped subnets silently route users across the WAN.
+    </div>
+  </div>
+</section>
+
+<!-- ===== CHAPTER 15: DNS FOR AD ===== -->
+<section class="section" id="dns-for-ad">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-badge">Chapter 15</div>
+      <h2 class="section-title">DNS for Active Directory</h2>
+      <p class="section-desc">AD runs on DNS &mdash; literally. Clients find DCs via SRV records, Kerberos needs reverse lookups, and misconfigured forwarders cause 80% of "AD is slow" tickets.</p>
+    </div>
+
+    <div class="bp-categories">
+      <div class="bp-category">
+        <div class="bp-icon">&#128230;</div>
+        <h3>AD-integrated Zones</h3>
+        <ul class="bp-list">
+          <li>Zone data lives in the <strong>AD database</strong>, replicated to every DC.</li>
+          <li>Multi-master &mdash; any DC can accept secure updates.</li>
+          <li>Supports <strong>secure dynamic updates</strong> (Kerberos-authenticated).</li>
+          <li>Default for forward and reverse lookup on a DC.</li>
+        </ul>
+      </div>
+      <div class="bp-category">
+        <div class="bp-icon">&#128259;</div>
+        <h3>Conditional Forwarders</h3>
+        <ul class="bp-list">
+          <li>Route queries for a specific domain to specific DNS servers.</li>
+          <li>Use for <strong>cross-forest trusts</strong>, hybrid cloud, or partner domains.</li>
+          <li>Simpler than secondary zones; no zone transfer required.</li>
+        </ul>
+      </div>
+      <div class="bp-category">
+        <div class="bp-icon">&#127777;</div>
+        <h3>Scavenging</h3>
+        <ul class="bp-list">
+          <li>Deletes <strong>stale dynamic records</strong> (default: 7-day no-refresh + 7-day refresh).</li>
+          <li>Must be enabled per server <em>and</em> per zone &mdash; both are required.</li>
+          <li>Without it: duplicate records accumulate; Kerberos hits wrong IPs.</li>
+        </ul>
+      </div>
+      <div class="bp-category">
+        <div class="bp-icon">&#128273;</div>
+        <h3>Reverse Lookup Zones</h3>
+        <ul class="bp-list">
+          <li>Kerberos and some legacy apps need working <strong>PTR records</strong>.</li>
+          <li>Create one per subnet: e.g., <code>10.20.in-addr.arpa</code>.</li>
+          <li>Enable secure dynamic updates so clients self-register.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3 class="subsection-title" style="margin-top:32px;">The SRV Records That Make AD Work</h3>
+    <div class="alt-table-wrapper">
+      <table class="alt-table">
+        <thead><tr><th>SRV name</th><th>What clients use it for</th></tr></thead>
+        <tbody>
+          <tr><td><code>_ldap._tcp.dc._msdcs.<em>domain</em></code></td><td>Locate <strong>any DC</strong> in the domain</td></tr>
+          <tr><td><code>_ldap._tcp.<em>site</em>._sites.dc._msdcs.<em>domain</em></code></td><td>Locate a DC <strong>in the client's site</strong></td></tr>
+          <tr><td><code>_kerberos._tcp.<em>domain</em></code></td><td>Kerberos KDC discovery</td></tr>
+          <tr><td><code>_kerberos._udp.<em>domain</em></code></td><td>Kerberos over UDP (legacy)</td></tr>
+          <tr><td><code>_gc._tcp.<em>forest</em></code></td><td>Global Catalog discovery (port 3268)</td></tr>
+          <tr><td><code>_ldap._tcp.pdc._msdcs.<em>domain</em></code></td><td>Find the PDC Emulator</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note-box" style="margin-top:12px;">
+      <strong>If these records are missing</strong>, clients can't find a DC, and <code>netlogon</code> can't re-register them. Fix with <code>ipconfig /registerdns</code> and <code>net stop netlogon &amp;&amp; net start netlogon</code> on the DC. Validate with <code>nslookup -type=SRV _ldap._tcp.dc._msdcs.corp.com</code>.
+    </div>
+
+    <h3 class="subsection-title" style="margin-top:32px;">Split-Brain DNS</h3>
+    <div class="arch-rec">
+      <strong>&#9888; Don't use a public domain you don't own.</strong> If your AD is <code>corp.com</code> and marketing registers <code>corp.com</code> externally, every laptop at Starbucks resolves <code>corp.com</code> to the public web server instead of the DC. Either:
+      <ul style="margin-top:10px; padding-left:20px;">
+        <li>Own the public domain and host <strong>both</strong> DNS views (split-brain), OR</li>
+        <li>Use a non-overlapping internal namespace (e.g., <code>ad.corp.com</code> or <code>corp.local</code>).</li>
+      </ul>
+    </div>
+
+    <h3 class="subsection-title" style="margin-top:32px;">DNS Health Checklist</h3>
+    <div class="bp-categories">
+      <div class="bp-category">
+        <div class="bp-icon">&#9989;</div>
+        <h3>On every DC</h3>
+        <ul class="bp-list">
+          <li>Point primary DNS at <strong>another DC</strong>, secondary at loopback (or vice versa).</li>
+          <li>Never point a DC at only itself &mdash; "island mode" breaks replication.</li>
+          <li>Enable scavenging on the server <em>and</em> on each zone.</li>
+          <li>Configure one forwarder (ISP or public resolver) for external names.</li>
+        </ul>
+      </div>
+      <div class="bp-category">
+        <div class="bp-icon">&#128269;</div>
+        <h3>Validation</h3>
+        <ul class="bp-list">
+          <li><code>dcdiag /test:dns /v</code> &mdash; comprehensive DNS test suite.</li>
+          <li><code>nltest /dsgetdc:corp.com</code> &mdash; what DC does a client resolve?</li>
+          <li><code>Resolve-DnsName _ldap._tcp.dc._msdcs.corp.com -Type SRV</code></li>
+          <li>Reverse lookup for every DC's IP must return its FQDN.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== CHAPTER 16: OU DESIGN, DELEGATION & SERVICE ACCOUNTS ===== -->
+<section class="section section-alt" id="ou-delegation">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-badge">Chapter 16</div>
+      <h2 class="section-title">OU Design, Delegation & Service Accounts</h2>
+      <p class="section-desc">OU structure isn't an org chart &mdash; it's an administrative boundary. Combined with the Tier 0/1/2 model and group-managed service accounts, it's the foundation of a defensible directory.</p>
+    </div>
+
+    <h3 class="subsection-title">OU Design Principles</h3>
+    <div class="bp-categories">
+      <div class="bp-category">
+        <div class="bp-icon">&#127970;</div>
+        <h3>Design for admin, not org chart</h3>
+        <ul class="bp-list">
+          <li>Model OUs on <strong>delegation and GPO application</strong>, not reporting lines.</li>
+          <li>Separate <strong>Users</strong>, <strong>Computers</strong>, <strong>Groups</strong>, <strong>Service Accounts</strong> at the top.</li>
+          <li>Keep OU depth to 3-4 levels max &mdash; deeper = painful to manage.</li>
+          <li>Never put objects in the default <code>CN=Users</code> container &mdash; GPOs can't target it.</li>
+        </ul>
+      </div>
+      <div class="bp-category">
+        <div class="bp-icon">&#128273;</div>
+        <h3>Tiered OU structure</h3>
+        <ul class="bp-list">
+          <li>Dedicated <strong>Tier 0</strong> OU for DCs, admin accounts, PAWs, backup systems.</li>
+          <li>Separate <strong>Tier 1</strong> OU for member servers and their admins.</li>
+          <li>Separate <strong>Tier 2</strong> OU for workstations and user accounts.</li>
+          <li>Block inheritance only when explicitly needed; document every block.</li>
+        </ul>
+      </div>
+      <div class="bp-category">
+        <div class="bp-icon">&#128101;</div>
+        <h3>Groups with AGDLP</h3>
+        <ul class="bp-list">
+          <li><strong>A</strong>ccount &rarr; <strong>G</strong>lobal &rarr; <strong>D</strong>omain Local &rarr; <strong>P</strong>ermission.</li>
+          <li>Users in Global groups (by role), Global nested in Domain Local, DL granted permissions.</li>
+          <li>Universal groups only for cross-domain scenarios &mdash; replicate to every GC.</li>
+          <li>Never grant permissions directly to user accounts.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3 class="subsection-title" style="margin-top:32px;">The Tier 0 / 1 / 2 Model</h3>
+    <div class="alt-table-wrapper">
+      <table class="alt-table">
+        <thead><tr><th>Tier</th><th>Contains</th><th>Admins can log on to</th><th>Admins CANNOT log on to</th></tr></thead>
+        <tbody>
+          <tr><td><strong style="color:var(--danger);">Tier 0</strong></td><td>DCs, PKI, Entra Connect, backup, HSMs, PAWs</td><td>Tier 0 systems only, via PAW</td><td>Any Tier 1 or Tier 2 system</td></tr>
+          <tr><td><strong style="color:var(--warning);">Tier 1</strong></td><td>Member servers, DB servers, app servers</td><td>Tier 1 servers</td><td>DCs, workstations</td></tr>
+          <tr><td><strong style="color:var(--success);">Tier 2</strong></td><td>Workstations, end-user accounts, printers</td><td>Workstations</td><td>Servers, DCs</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note-box" style="margin-top:12px;">
+      <strong>Why it matters:</strong> If a Tier 2 workstation is compromised and a Tier 0 admin logs in there (even once), their TGT lands in LSASS and the whole domain is burned. Enforce tiering with Authentication Policy Silos and Protected Users group.
+    </div>
+
+    <h3 class="subsection-title" style="margin-top:32px;">Delegate, Don't DA</h3>
+    <div class="code-block">
+      <div class="code-header"><span>Delegate helpdesk password reset on an OU</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre><code><span class="comment"># Grant HelpDesk group the right to reset passwords on OU=Users,OU=BKK</span>
+$ou  = &quot;AD:\OU=Users,OU=BKK,DC=corp,DC=com&quot;
+$acl = Get-Acl $ou
+$sid = (Get-ADGroup &quot;HelpDesk-BKK&quot;).SID
+
+<span class="comment"># Reset password (extended right 00299570-246d-11d0-a768-00aa006e0529)</span>
+$rule = New-Object System.DirectoryServices.ActiveDirectoryAccessRule(
+    $sid, &quot;ExtendedRight&quot;, &quot;Allow&quot;,
+    [GUID]&quot;00299570-246d-11d0-a768-00aa006e0529&quot;,
+    &quot;Descendents&quot;,
+    [GUID]&quot;bf967aba-0de6-11d0-a285-00aa003049e2&quot;  <span class="comment"># user object class</span>
+)
+$acl.AddAccessRule($rule)
+Set-Acl -Path $ou -AclObject $acl</code></pre>
+    </div>
+
+    <h3 class="subsection-title" style="margin-top:32px;">Service Accounts &mdash; From Bad to Best</h3>
+    <div class="alt-table-wrapper">
+      <table class="alt-table">
+        <thead><tr><th>Type</th><th>Password management</th><th>SPN support</th><th>Use when</th></tr></thead>
+        <tbody>
+          <tr><td>Plain user account</td><td class="cross">&#10060; Manual, often never rotated</td><td class="check">&#9989;</td><td>Never (if you can avoid it)</td></tr>
+          <tr><td>Managed Service Account (MSA)</td><td class="check">&#9989; Auto</td><td class="check">&#9989;</td><td>Service bound to <strong>a single server</strong> (legacy, Server 2008 R2+)</td></tr>
+          <tr><td><strong>Group Managed Service Account (gMSA)</strong></td><td class="check">&#9989; Auto, every 30 days</td><td class="check">&#9989;</td><td>Service running on multiple hosts (clusters, farms) &mdash; <strong>default choice</strong></td></tr>
+          <tr><td>Delegated MSA (dMSA, Server 2025)</td><td class="check">&#9989; Auto</td><td class="check">&#9989;</td><td>Replacing a legacy service account in place; migration path</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header"><span>Create and install a gMSA</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre><code><span class="comment"># One-time per forest: generate the KDS root key</span>
+Add-KdsRootKey -EffectiveTime ((Get-Date).AddHours(-10))
+
+<span class="comment"># Create a security group that will contain hosts allowed to retrieve the password</span>
+New-ADGroup -Name &quot;gMSA-SQLService-Hosts&quot; -GroupScope Global
+Add-ADGroupMember &quot;gMSA-SQLService-Hosts&quot; -Members &quot;SQL-01$&quot;,&quot;SQL-02$&quot;
+
+<span class="comment"># Create the gMSA</span>
+New-ADServiceAccount -Name &quot;svcSQL01&quot; `
+  -DNSHostName &quot;svcSQL01.corp.com&quot; `
+  -PrincipalsAllowedToRetrieveManagedPassword &quot;gMSA-SQLService-Hosts&quot; `
+  -ServicePrincipalNames &quot;MSSQLSvc/SQL-01.corp.com:1433&quot;
+
+<span class="comment"># On each target server (reboot first so group membership applies)</span>
+Install-ADServiceAccount -Identity &quot;svcSQL01&quot;
+Test-ADServiceAccount    -Identity &quot;svcSQL01&quot;    <span class="comment"># should return True</span>
+
+<span class="comment"># Then configure your service: Logon as = corp\svcSQL01$ (trailing $, blank password)</span></code></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ===== CHAPTER 17: HYBRID IDENTITY ===== -->
+<section class="section" id="hybrid-identity">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-badge">Chapter 17</div>
+      <h2 class="section-title">Hybrid Identity (Entra Connect)</h2>
+      <p class="section-desc">Most real-world AD runs hybrid: on-prem is the source of truth, Entra ID is the cloud projection. Picking the right sync tool and authentication method is a one-way door &mdash; get it right the first time.</p>
+    </div>
+
+    <h3 class="subsection-title">Entra Connect Sync vs Entra Cloud Sync</h3>
+    <div class="alt-table-wrapper">
+      <table class="alt-table">
+        <thead><tr><th>Capability</th><th>Entra Connect Sync (legacy)</th><th>Entra Cloud Sync (modern)</th></tr></thead>
+        <tbody>
+          <tr><td>Infrastructure</td><td>Full Windows server + SQL</td><td>Lightweight agent only</td></tr>
+          <tr><td>Multi-forest</td><td class="check">&#9989; Single server, many forests</td><td class="check">&#9989; Multiple agents, disconnected forests</td></tr>
+          <tr><td>Device sync / Hybrid join</td><td class="check">&#9989;</td><td class="check">&#9989; (since 2023)</td></tr>
+          <tr><td>Password hash sync (PHS)</td><td class="check">&#9989;</td><td class="check">&#9989;</td></tr>
+          <tr><td>Password writeback</td><td class="check">&#9989;</td><td class="check">&#9989;</td></tr>
+          <tr><td>Pass-through auth (PTA)</td><td class="check">&#9989;</td><td class="cross">&#10060;</td></tr>
+          <tr><td>Federation (AD FS)</td><td class="check">&#9989;</td><td class="cross">&#10060;</td></tr>
+          <tr><td>Group writeback / Exchange hybrid</td><td class="check">&#9989;</td><td class="cross">&#10060; (M365 groups only)</td></tr>
+          <tr><td>Microsoft's direction</td><td>Maintenance mode</td><td><strong>Strategic &mdash; new deployments start here</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="subsection-title" style="margin-top:32px;">Authentication Methods</h3>
+    <div class="bp-categories">
+      <div class="bp-category">
+        <div class="bp-icon">&#128273;</div>
+        <h3>Password Hash Sync (PHS)</h3>
+        <ul class="bp-list">
+          <li>Hash of the on-prem hash is sent to Entra ID every 2 min.</li>
+          <li>Auth happens <strong>in the cloud</strong> &mdash; survives on-prem outages.</li>
+          <li>Required for Leaked Credential Detection &amp; Entra ID Protection.</li>
+          <li><strong>Default and recommended choice</strong> for most organisations.</li>
+        </ul>
+      </div>
+      <div class="bp-category">
+        <div class="bp-icon">&#128279;</div>
+        <h3>Pass-through Authentication (PTA)</h3>
+        <ul class="bp-list">
+          <li>Auth request forwarded to on-prem agent, validated against AD.</li>
+          <li>No password hashes in the cloud.</li>
+          <li>On-prem outage &rarr; nobody can log on to M365.</li>
+          <li>Still: enable PHS alongside as an outage fallback.</li>
+        </ul>
+      </div>
+      <div class="bp-category">
+        <div class="bp-icon">&#127970;</div>
+        <h3>Federation (AD FS)</h3>
+        <ul class="bp-list">
+          <li>Auth redirected to on-prem AD FS farm.</li>
+          <li>Needed for: smartcard, 3rd-party MFA pre-Entra, custom claim rules.</li>
+          <li>Highest operational burden; Microsoft is steering away from it.</li>
+          <li>Plan a <strong>federation &rarr; PHS/CBA migration</strong> if you're still here.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3 class="subsection-title" style="margin-top:32px;">Seamless SSO & Kerberos in the Cloud</h3>
+    <div class="note-box">
+      <strong>Seamless SSO</strong> creates a computer account <code>AZUREADSSOACC</code> in your domain that holds a Kerberos service ticket for Entra ID. Domain-joined devices on the corporate network get silent SSO to M365. Important: <strong>rotate the <code>AZUREADSSOACC</code> password every 30 days</strong> &mdash; failure to rotate for 90+ days is a known attack path (Golden SAML / SilverSSO).
+    </div>
+
+    <h3 class="subsection-title" style="margin-top:32px;">Hybrid Device States</h3>
+    <div class="alt-table-wrapper">
+      <table class="alt-table">
+        <thead><tr><th>State</th><th>Where it logs on</th><th>Managed by</th><th>Use case</th></tr></thead>
+        <tbody>
+          <tr><td>AD-joined only</td><td>On-prem AD</td><td>GPO / SCCM</td><td>Legacy on-prem workstations</td></tr>
+          <tr><td>Entra-joined only</td><td>Entra ID</td><td>Intune</td><td>Cloud-first / shared devices / Autopilot</td></tr>
+          <tr><td><strong>Hybrid-joined</strong></td><td>Both AD and Entra</td><td>GPO + Intune (co-management)</td><td>Enterprise standard during transition</td></tr>
+          <tr><td>Entra-registered (workplace join)</td><td>Personal, workplace resources</td><td>App-level (Conditional Access)</td><td>BYOD</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="subsection-title" style="margin-top:32px;">Common Pitfalls</h3>
+    <div class="bp-categories">
+      <div class="bp-category">
+        <div class="bp-icon">&#9888;</div>
+        <h3>Watch out for</h3>
+        <ul class="bp-list">
+          <li><strong>UPN suffix mismatch</strong> &mdash; on-prem <code>user@corp.local</code> can't sync to Entra. Add a verified public domain as alternate UPN.</li>
+          <li><strong>Non-routable domains</strong> (.local, .lan) &mdash; break Autopilot and modern auth. Rename UPNs <em>before</em> first sync.</li>
+          <li><strong>Object attribute conflicts</strong> &mdash; <code>mail</code>, <code>proxyAddresses</code>, <code>mS-DS-ConsistencyGuid</code> are the usual suspects.</li>
+          <li><strong>SourceAnchor change</strong> post-sync is a hard restart. Pick <code>ms-DS-ConsistencyGuid</code> from day one.</li>
+          <li><strong>Password policy divergence</strong> &mdash; Entra accepts longer passwords than many on-prem policies; writeback respects on-prem minimums.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== CHAPTER 18: GROUP POLICY DEEP-DIVE ===== -->
+<section class="section section-alt" id="group-policy">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-badge">Chapter 18</div>
+      <h2 class="section-title">Group Policy Deep-Dive</h2>
+      <p class="section-desc">GPOs are AD's configuration-as-code. Get the processing order and inheritance right and you can push security baselines to 10,000 machines in one afternoon &mdash; get them wrong and you're debugging <code>gpresult</code> at 2am.</p>
+    </div>
+
+    <h3 class="subsection-title">LSDOU: The Order Everything Depends On</h3>
+    <div class="bp-categories">
+      <div class="bp-category">
+        <div class="bp-icon">&#49;</div>
+        <h3>L &mdash; Local</h3>
+        <ul class="bp-list">
+          <li>Local Group Policy on the machine itself.</li>
+          <li>Applied first, overridden by anything from AD.</li>
+          <li>Managed with <code>gpedit.msc</code> or <code>LGPO.exe</code>.</li>
+        </ul>
+      </div>
+      <div class="bp-category">
+        <div class="bp-icon">&#50;</div>
+        <h3>S &mdash; Site</h3>
+        <ul class="bp-list">
+          <li>Linked at the AD site level (rare &mdash; usually ignored).</li>
+          <li>Use only for genuinely site-specific settings (proxy, printer).</li>
+        </ul>
+      </div>
+      <div class="bp-category">
+        <div class="bp-icon">&#51;</div>
+        <h3>D &mdash; Domain</h3>
+        <ul class="bp-list">
+          <li>Linked to the domain root. <strong>Default Domain Policy</strong> sits here.</li>
+          <li>Reserve DDP for password/lockout policy only &mdash; everything else gets a new GPO.</li>
+        </ul>
+      </div>
+      <div class="bp-category">
+        <div class="bp-icon">&#52;</div>
+        <h3>OU &mdash; Organisational Unit</h3>
+        <ul class="bp-list">
+          <li>Walks the OU tree top &rarr; bottom, nested OUs last.</li>
+          <li><strong>Last writer wins</strong> &mdash; the deepest OU link overrides the domain.</li>
+          <li>This is the layer where 99% of real work happens.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3 class="subsection-title" style="margin-top:32px;">Inheritance, Blocking & Enforcement</h3>
+    <div class="alt-table-wrapper">
+      <table class="alt-table">
+        <thead><tr><th>Feature</th><th>What it does</th><th>When to use</th></tr></thead>
+        <tbody>
+          <tr><td>Block Inheritance</td><td>OU ignores all GPOs from parent containers</td><td>Rarely &mdash; makes audits painful</td></tr>
+          <tr><td><strong>Enforced</strong> (GPO link)</td><td>Overrides Block Inheritance; wins against deeper links</td><td>Security baselines you cannot allow a sub-OU to override</td></tr>
+          <tr><td>Security Filtering</td><td>Only applies to users/computers in the ACL</td><td>Targeted exceptions without carving a new OU</td></tr>
+          <tr><td>WMI Filtering</td><td>Applies only if a WMI query returns true</td><td>OS version, hardware, make/model targeting</td></tr>
+          <tr><td>Item-level targeting (Preferences)</td><td>Per-item filter inside a GPP setting</td><td>Printers, drive maps, registry per group</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="subsection-title" style="margin-top:32px;">Loopback Processing</h3>
+    <div class="note-box">
+      <strong>The classic "user policy on a kiosk" problem.</strong> Normally the <em>user's</em> OU dictates user policy. Loopback flips that: the computer's OU applies user policy to whoever logs on. Use for shared machines (lab, kiosk, RDSH).
+      <ul style="margin-top:10px; padding-left:20px;">
+        <li><strong>Merge mode:</strong> user settings from user OU + computer OU (computer wins conflicts).</li>
+        <li><strong>Replace mode:</strong> ONLY computer-OU user settings &mdash; aggressive, use with care.</li>
+      </ul>
+    </div>
+
+    <h3 class="subsection-title" style="margin-top:32px;">Central Store &mdash; ADMX in One Place</h3>
+    <div class="code-block">
+      <div class="code-header"><span>Create a Central Store so every admin sees the same ADMX</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre><code><span class="comment"># Create the central store on the PDC Emulator (replicated via SYSVOL)</span>
+$sysvol = &quot;\\corp.com\SYSVOL\corp.com\Policies&quot;
+New-Item -ItemType Directory -Path &quot;$sysvol\PolicyDefinitions&quot;
+New-Item -ItemType Directory -Path &quot;$sysvol\PolicyDefinitions\en-US&quot;
+
+<span class="comment"># Copy the local ADMX files into the store</span>
+Copy-Item &quot;C:\Windows\PolicyDefinitions\*.admx&quot;        &quot;$sysvol\PolicyDefinitions&quot;      -Force
+Copy-Item &quot;C:\Windows\PolicyDefinitions\en-US\*.adml&quot;  &quot;$sysvol\PolicyDefinitions\en-US&quot; -Force
+
+<span class="comment"># Download newest Windows 11 / Server 2025 ADMX from Microsoft and overlay here.
+# Also drop vendor templates (Chrome, Firefox, Office) into the same folder.</span></code></pre>
+    </div>
+
+    <h3 class="subsection-title" style="margin-top:32px;">Preferences vs Policies</h3>
+    <div class="alt-table-wrapper">
+      <table class="alt-table">
+        <thead><tr><th></th><th>Policies (Admin Templates)</th><th>Preferences (GPP)</th></tr></thead>
+        <tbody>
+          <tr><td>Where values go</td><td>Registry under <code>Policies</code> hives</td><td>Anywhere &mdash; normal registry, files, services</td></tr>
+          <tr><td>Reversible when GPO removed?</td><td class="check">&#9989; Reverts automatically</td><td class="cross">&#10060; Tattoo &mdash; stays unless unchecked "apply once"</td></tr>
+          <tr><td>Item-level targeting</td><td class="cross">&#10060;</td><td class="check">&#9989; Powerful</td></tr>
+          <tr><td>Can set passwords?</td><td class="cross">&#10060;</td><td class="cross"><strong>&#10060; Don't</strong> &mdash; cpassword was broken, MS14-025</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="subsection-title" style="margin-top:32px;">Troubleshooting Cookbook</h3>
+    <div class="code-block">
+      <div class="code-header"><span>Day-to-day GPO diagnostics</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre><code><span class="comment"># What applied on THIS machine/user?</span>
+gpresult /h C:\gpreport.html /f        <span class="comment"># readable HTML report</span>
+gpresult /r /scope:computer            <span class="comment"># quick console summary</span>
+
+<span class="comment"># Force refresh (don't reboot)</span>
+gpupdate /force /target:computer
+gpupdate /force /target:user /logoff   <span class="comment"># for CSEs that need logoff</span>
+
+<span class="comment"># Remote refresh for an OU (fan-out)</span>
+Invoke-GPUpdate -Computer &quot;WKS-01&quot; -Force -RandomDelayInMinutes 0
+
+<span class="comment"># Backup all GPOs before a change window</span>
+Backup-GPO -All -Path &quot;\\backup\gpo\$(Get-Date -f yyyy-MM-dd)&quot;
+
+<span class="comment"># Find GPOs with specific setting (text search through XML reports)</span>
+Get-GPO -All | ForEach-Object {
+    $r = Get-GPOReport -Guid $_.Id -ReportType Xml
+    if ($r -match 'PasswordComplexity') { $_.DisplayName }
+}</code></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ===== CHAPTER 19: BACKUP, RESTORE & DR ===== -->
+<section class="section" id="backup-dr">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-badge">Chapter 19</div>
+      <h2 class="section-title">Backup, Restore & Disaster Recovery</h2>
+      <p class="section-desc">Ransomware-era AD recovery isn't about restoring one DC &mdash; it's about recovering an entire forest from offline media while assuming every live DC is compromised. Plan it now, not during the incident.</p>
+    </div>
+
+    <h3 class="subsection-title">What's in a "System State" Backup?</h3>
+    <div class="bp-categories">
+      <div class="bp-category">
+        <div class="bp-icon">&#128230;</div>
+        <h3>AD Database &amp; Logs</h3>
+        <ul class="bp-list">
+          <li><code>ntds.dit</code> &mdash; the directory database.</li>
+          <li>Transaction logs under <code>C:\Windows\NTDS</code>.</li>
+          <li>The DSA signature that makes the DC itself.</li>
+        </ul>
+      </div>
+      <div class="bp-category">
+        <div class="bp-icon">&#128194;</div>
+        <h3>SYSVOL</h3>
+        <ul class="bp-list">
+          <li>GPOs, logon scripts, startup scripts.</li>
+          <li>Replicated via DFSR (or FRS if legacy).</li>
+          <li>Loss = every GPO link resolves to nothing.</li>
+        </ul>
+      </div>
+      <div class="bp-category">
+        <div class="bp-icon">&#128273;</div>
+        <h3>Registry &amp; COM+</h3>
+        <ul class="bp-list">
+          <li>Full registry including security hives.</li>
+          <li>COM+ class registration database.</li>
+          <li>Boot files + certificate store (if CA installed).</li>
+        </ul>
+      </div>
+      <div class="bp-category">
+        <div class="bp-icon">&#9881;</div>
+        <h3>Service-specific state</h3>
+        <ul class="bp-list">
+          <li>DHCP database (if the DC hosts it).</li>
+          <li>Cluster database (if clustered).</li>
+          <li>CA database (if AD CS installed).</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3 class="subsection-title" style="margin-top:32px;">Backup Cadence &amp; Retention</h3>
+    <div class="alt-table-wrapper">
+      <table class="alt-table">
+        <thead><tr><th>Scope</th><th>Cadence</th><th>Retention</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td>System State on each DC</td><td>Daily</td><td>Minimum 180 days (tombstone lifetime)</td><td>Restoring older than tombstone = lingering objects</td></tr>
+          <tr><td>At least 2 DCs per domain</td><td>Daily, different schedule</td><td>Same 180 days</td><td>Don't trust one tape set</td></tr>
+          <tr><td>GPO backup via GPMC</td><td>Before every change</td><td>Keep 6 months</td><td>Granular rollback without a DC restore</td></tr>
+          <tr><td>Offline copy (air-gapped)</td><td>Weekly</td><td>1 year</td><td>Ransomware can wipe online backup repositories</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="subsection-title" style="margin-top:32px;">Three Kinds of Restore</h3>
+    <div class="bp-categories">
+      <div class="bp-category">
+        <div class="bp-icon">&#9851;</div>
+        <h3>Non-authoritative</h3>
+        <ul class="bp-list">
+          <li>Restore a failed DC; it syncs forward from its partners.</li>
+          <li>Use when: single DC died, other DCs are healthy.</li>
+          <li>Boot into DSRM, restore System State, reboot normal.</li>
+        </ul>
+      </div>
+      <div class="bp-category">
+        <div class="bp-icon">&#128681;</div>
+        <h3>Authoritative</h3>
+        <ul class="bp-list">
+          <li>Restore specific objects and make them "win" against newer copies.</li>
+          <li>Use when: critical OU deleted and already replicated.</li>
+          <li><code>ntdsutil "authoritative restore" "restore subtree OU=..."</code></li>
+        </ul>
+      </div>
+      <div class="bp-category">
+        <div class="bp-icon">&#128165;</div>
+        <h3>Forest Recovery</h3>
+        <ul class="bp-list">
+          <li>Full restore from scratch assuming the <em>entire</em> forest is poisoned.</li>
+          <li>Required after: domain compromise, ransomware, schema corruption.</li>
+          <li>Follow Microsoft's forest recovery guide step-for-step &mdash; ad-lib = disaster.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3 class="subsection-title" style="margin-top:32px;">AD Recycle Bin &mdash; First Line of Defence</h3>
+    <div class="code-block">
+      <div class="code-header"><span>Enable Recycle Bin and recover deleted objects</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre><code><span class="comment"># One-time enable (irreversible; needs Forest Functional Level 2008 R2+)</span>
+Enable-ADOptionalFeature `
+  -Identity &quot;Recycle Bin Feature&quot; `
+  -Scope ForestOrConfigurationSet `
+  -Target &quot;corp.com&quot;
+
+<span class="comment"># Find an accidentally-deleted user</span>
+Get-ADObject -Filter 'IsDeleted -eq $true -and Name -like &quot;*Smith*&quot;' `
+  -IncludeDeletedObjects -Properties * |
+  Select-Object Name, LastKnownParent
+
+<span class="comment"># Restore it in place</span>
+Restore-ADObject -Identity &quot;&lt;ObjectGUID&gt;&quot;
+
+<span class="comment"># Window: default 180 days (= tombstone lifetime). Can be extended, not shortened.</span></code></pre>
+    </div>
+
+    <h3 class="subsection-title" style="margin-top:32px;">Forest Recovery Runbook (abridged)</h3>
+    <div class="impl-steps">
+      <div class="impl-step"><strong>1. Isolate.</strong> Disconnect every DC from the network; treat all live DCs as compromised.</div>
+      <div class="impl-step"><strong>2. Pick one DC per domain to be first.</strong> Prefer offline System State backup from before the incident.</div>
+      <div class="impl-step"><strong>3. Restore that DC non-authoritatively</strong> into an isolated network. Boot DSRM, restore, reboot.</div>
+      <div class="impl-step"><strong>4. Seize all FSMO roles</strong> to that DC. Clean metadata of every other DC.</div>
+      <div class="impl-step"><strong>5. Raise RID pool and invalidate the current pool</strong> (<code>Set-ADDomain -RIDMasterRole ...</code> + pool invalidate).</div>
+      <div class="impl-step"><strong>6. Reset <code>krbtgt</code> twice</strong>, 10+ hours apart, to kill any Golden Tickets.</div>
+      <div class="impl-step"><strong>7. Reset trust passwords, computer accounts for DCs, and privileged user passwords.</strong></div>
+      <div class="impl-step"><strong>8. Clean DNS &amp; SYSVOL</strong> of stale records from the removed DCs.</div>
+      <div class="impl-step"><strong>9. Rebuild remaining DCs from scratch</strong> (DCPROMO); do NOT restore them from backup.</div>
+      <div class="impl-step"><strong>10. Only now reconnect to production LAN.</strong></div>
+    </div>
+
+    <div class="arch-rec" style="margin-top:20px;">
+      <strong>&#128161; Test your runbook, not your backups.</strong> Restoring one DC in a VM is easy. Rebuilding a multi-domain forest from offline media while every pager is screaming is not. Run a tabletop every quarter.
+    </div>
+  </div>
+</section>
+
+<!-- ===== CHAPTER 20: MONITORING & TROUBLESHOOTING ===== -->
+<section class="section section-alt" id="monitoring">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-badge">Chapter 20</div>
+      <h2 class="section-title">Monitoring & Troubleshooting</h2>
+      <p class="section-desc">AD is quiet until it isn't. These are the tools and Event IDs you check before users notice &mdash; and the ones you grep for once they do.</p>
+    </div>
+
+    <h3 class="subsection-title">The Four Tools Every AD Admin Owns</h3>
+    <div class="bp-categories">
+      <div class="bp-category">
+        <div class="bp-icon">&#128269;</div>
+        <h3>dcdiag</h3>
+        <ul class="bp-list">
+          <li>End-to-end DC health: connectivity, replication, DNS, FSMO, SYSVOL, netlogon.</li>
+          <li>Run weekly minimum; alert on any failure.</li>
+          <li><code>dcdiag /e /v /c /q</code> &mdash; every DC, verbose, comprehensive, quiet-pass.</li>
+        </ul>
+      </div>
+      <div class="bp-category">
+        <div class="bp-icon">&#128257;</div>
+        <h3>repadmin</h3>
+        <ul class="bp-list">
+          <li>Replication deep-dive: partners, queues, vectors, last success.</li>
+          <li>Start with <code>/replsummary</code>, drill down with <code>/showrepl *</code>.</li>
+          <li>Any inbound replication &gt; 60 min stale = investigate today.</li>
+        </ul>
+      </div>
+      <div class="bp-category">
+        <div class="bp-icon">&#128203;</div>
+        <h3>Event Viewer</h3>
+        <ul class="bp-list">
+          <li><code>Directory Service</code>, <code>DFS Replication</code>, <code>DNS Server</code>, <code>System</code> logs.</li>
+          <li>Forward to a central store; local DC logs rotate too fast on busy domains.</li>
+          <li>Mandatory for post-incident forensics.</li>
+        </ul>
+      </div>
+      <div class="bp-category">
+        <div class="bp-icon">&#128200;</div>
+        <h3>Perfmon / Sentinel / MDI</h3>
+        <ul class="bp-list">
+          <li>Perfmon counters: <code>DRA Pending Replication Operations</code>, <code>NTDS LDAP Searches/sec</code>.</li>
+          <li><strong>Microsoft Defender for Identity (MDI)</strong> &mdash; detects Kerberoasting, DCSync, Golden Ticket.</li>
+          <li>Ship logs to Sentinel / Splunk for SIEM-side correlation.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3 class="subsection-title" style="margin-top:32px;">Key Event IDs to Alert On</h3>
+    <div class="alt-table-wrapper">
+      <table class="alt-table">
+        <thead><tr><th>Event ID</th><th>Log</th><th>What it means</th><th>Severity</th></tr></thead>
+        <tbody>
+          <tr><td>4624</td><td>Security</td><td>Successful logon (type 3/10 = network/RDP)</td><td>Info; baseline</td></tr>
+          <tr><td>4625</td><td>Security</td><td>Failed logon &mdash; bursts = password spray</td><td><span style="color:var(--warning);">Warn</span></td></tr>
+          <tr><td>4648</td><td>Security</td><td>Explicit credential use &mdash; often "runas" lateral movement</td><td><span style="color:var(--warning);">Warn</span></td></tr>
+          <tr><td>4728/4732/4756</td><td>Security</td><td>Added to Global/DL/Universal group &mdash; privilege escalation</td><td><span style="color:var(--danger);">Alert</span></td></tr>
+          <tr><td>4768</td><td>Security</td><td>Kerberos TGT request &mdash; baseline for spray detection</td><td>Info</td></tr>
+          <tr><td>4769</td><td>Security</td><td>Kerberos TGS request &mdash; RC4 + privileged = Kerberoasting</td><td><span style="color:var(--danger);">Alert</span></td></tr>
+          <tr><td>4776</td><td>Security</td><td>NTLM auth &mdash; should trend to zero</td><td><span style="color:var(--warning);">Warn</span></td></tr>
+          <tr><td>5136/5137/5141</td><td>Security</td><td>Directory object modified/created/deleted (requires audit policy)</td><td><span style="color:var(--warning);">Warn</span></td></tr>
+          <tr><td>1644</td><td>Directory Service</td><td>Expensive/inefficient LDAP query &mdash; app misbehaving</td><td><span style="color:var(--warning);">Warn</span></td></tr>
+          <tr><td>1864</td><td>Directory Service</td><td>Replication partner not available for N days</td><td><span style="color:var(--danger);">Alert</span></td></tr>
+          <tr><td>2042</td><td>Directory Service</td><td>Replication outside tombstone lifetime &mdash; <strong>lingering objects</strong></td><td><span style="color:var(--danger);">Alert</span></td></tr>
+          <tr><td>4015/4016/4013</td><td>DNS Server</td><td>AD-integrated DNS failed to load zone</td><td><span style="color:var(--danger);">Alert</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="subsection-title" style="margin-top:32px;">dcdiag Cheatsheet</h3>
+    <div class="code-block">
+      <div class="code-header"><span>Common dcdiag invocations</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre><code><span class="comment"># Full health across every DC, verbose, continue on error</span>
+dcdiag /e /v /c /q
+
+<span class="comment"># Only DNS tests (catches 80% of client issues)</span>
+dcdiag /test:dns /v /e
+
+<span class="comment"># Replication only</span>
+dcdiag /test:replications /e
+
+<span class="comment"># Specific DC, specific test</span>
+dcdiag /s:DC-BKK-01 /test:FSMOCheck
+dcdiag /s:DC-BKK-01 /test:NetLogons
+
+<span class="comment"># Advertising &mdash; "do clients see this as a DC?"</span>
+dcdiag /test:advertising /v</code></pre>
+    </div>
+
+    <h3 class="subsection-title" style="margin-top:32px;">Baseline Health Cadence</h3>
+    <div class="alt-table-wrapper">
+      <table class="alt-table">
+        <thead><tr><th>Interval</th><th>Check</th></tr></thead>
+        <tbody>
+          <tr><td>Every 15 min (automated)</td><td>DC reachability, DNS SRV resolution, time skew &lt; 2 min</td></tr>
+          <tr><td>Hourly</td><td><code>repadmin /replsummary</code> &mdash; alert on any failed partner</td></tr>
+          <tr><td>Daily</td><td><code>dcdiag /e /q</code> &mdash; email failures to AD team</td></tr>
+          <tr><td>Weekly</td><td>Review stale computer/user accounts (90-day), orphaned GPOs, SYSVOL size</td></tr>
+          <tr><td>Monthly</td><td>Patch all DCs, test one restore from backup</td></tr>
+          <tr><td>Quarterly</td><td>FSMO transfer drill, forest recovery tabletop, krbtgt rotation</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ===== CHAPTER 21: MIGRATION & UPGRADE ===== -->
+<section class="section" id="migration">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-badge">Chapter 21</div>
+      <h2 class="section-title">Migration & Upgrade</h2>
+      <p class="section-desc">Three flavours: lift the forest to a newer Windows Server (DC refresh), move objects between forests (ADMT), or move identity to the cloud (Entra Connect &rarr; Cloud Sync). Each has one right workflow and several wrong ones.</p>
+    </div>
+
+    <h3 class="subsection-title">Three Migration Scenarios</h3>
+    <div class="alt-table-wrapper">
+      <table class="alt-table">
+        <thead><tr><th>Scenario</th><th>Tool</th><th>Changes SID?</th><th>Downtime</th></tr></thead>
+        <tbody>
+          <tr><td>DC refresh (same forest, newer OS)</td><td>DCPROMO + transfer FSMO</td><td>No</td><td>None (rolling)</td></tr>
+          <tr><td>Forest Functional Level raise</td><td><code>Set-ADForestMode</code></td><td>No</td><td>None</td></tr>
+          <tr><td>Domain consolidation / rename</td><td>ADMT (cross-forest)</td><td>Yes (SIDHistory bridges)</td><td>Scheduled per batch</td></tr>
+          <tr><td>On-prem &rarr; cloud identity</td><td>Entra Connect / Cloud Sync</td><td>No (same objects, new cloud projection)</td><td>None</td></tr>
+          <tr><td>Entra Connect &rarr; Cloud Sync</td><td>Side-by-side pilot, then swap</td><td>No</td><td>None if planned</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="subsection-title" style="margin-top:32px;">In-Place vs Swing Migration (DC refresh)</h3>
+    <div class="bp-categories">
+      <div class="bp-category">
+        <div class="bp-icon">&#128257;</div>
+        <h3>Swing migration &mdash; RECOMMENDED</h3>
+        <ul class="bp-list">
+          <li>Build a brand-new DC on Windows Server 2025 side-by-side.</li>
+          <li>Promote it, let AD replicate, transfer FSMO.</li>
+          <li>Demote and retire the old DC.</li>
+          <li>Repeat for each DC in the forest.</li>
+          <li><strong>Why:</strong> clean OS, clean driver stack, easy rollback.</li>
+        </ul>
+      </div>
+      <div class="bp-category">
+        <div class="bp-icon">&#9888;</div>
+        <h3>In-place upgrade &mdash; allowed, not loved</h3>
+        <ul class="bp-list">
+          <li>Setup.exe over the existing OS.</li>
+          <li>Supported n-2: 2016 &rarr; 2022 &rarr; 2025; <strong>not</strong> 2012 R2 &rarr; 2025.</li>
+          <li>Carries forward drivers, schtasks, local cruft &mdash; harder to clean later.</li>
+          <li>Rollback = restore from backup; no "undo".</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3 class="subsection-title" style="margin-top:32px;">Pre-Flight Checklist (Before Any DC Change)</h3>
+    <div class="bp-categories">
+      <div class="bp-category">
+        <div class="bp-icon">&#9745;</div>
+        <h3>24 hours before</h3>
+        <ul class="bp-list">
+          <li>Full System State backup of <strong>every</strong> DC, verified restorable.</li>
+          <li><code>dcdiag /e</code> clean on all DCs.</li>
+          <li><code>repadmin /replsummary</code> clean on all DCs.</li>
+          <li>SYSVOL on DFSR (not FRS). Run <code>dfsrmig /GetMigrationState</code>.</li>
+          <li>Snapshot of each VM (if virtualised).</li>
+        </ul>
+      </div>
+      <div class="bp-category">
+        <div class="bp-icon">&#128269;</div>
+        <h3>Change window</h3>
+        <ul class="bp-list">
+          <li>Document current FSMO holders.</li>
+          <li>Record all GPO versions (<code>Backup-GPO -All</code>).</li>
+          <li>Confirm change ticket; comms sent.</li>
+          <li>Keep a rollback window twice as long as the forward window.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3 class="subsection-title" style="margin-top:32px;">Forest &amp; Domain Functional Level</h3>
+    <div class="note-box">
+      Raising FL is <strong>one-way</strong> (Server 2025 allows lowering back to 2016, but don't rely on it). Every DC in the domain must be on the target OS or newer <em>before</em> you raise DFL; every DC in the forest must be on target OS before raising FFL. After raising, you unlock features (Protected Users at 2012 R2+, finer Kerberos encryption at 2016+, etc).
+    </div>
+    <div class="code-block">
+      <div class="code-header"><span>Validate and raise functional levels</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre><code><span class="comment"># Inspect current levels</span>
+Get-ADForest | Select-Object ForestMode
+Get-ADDomain | Select-Object DomainMode
+
+<span class="comment"># Find any DC older than the target OS &mdash; blockers to raising</span>
+Get-ADDomainController -Filter * |
+  Select-Object Name, OperatingSystem, OperatingSystemVersion |
+  Sort-Object OperatingSystem
+
+<span class="comment"># Raise DFL first, then FFL (never the other way)</span>
+Set-ADDomainMode -Identity &quot;corp.com&quot; -DomainMode Windows2016Domain
+Set-ADForestMode -Identity &quot;corp.com&quot; -ForestMode Windows2016Forest</code></pre>
+    </div>
+
+    <h3 class="subsection-title" style="margin-top:32px;">Cross-Forest Migration (ADMT)</h3>
+    <div class="impl-steps">
+      <div class="impl-step"><strong>1. Establish a two-way trust</strong> between source and target forests; enable SID filtering on quarantined trusts.</div>
+      <div class="impl-step"><strong>2. Install ADMT 3.2 + PES (Password Export Service)</strong> on the source for password migration.</div>
+      <div class="impl-step"><strong>3. Pilot with a small group</strong> &mdash; a dozen users, one app server. Validate SIDHistory, GPO resolution, DFS access.</div>
+      <div class="impl-step"><strong>4. Migrate in waves</strong>: groups first, then users with their passwords, then computers (last &mdash; requires reboot).</div>
+      <div class="impl-step"><strong>5. Use <code>ADMT</code> security translation wizard</strong> to rewrite ACLs on file servers (removes dependency on SIDHistory).</div>
+      <div class="impl-step"><strong>6. Decommission the source forest</strong> only after SIDHistory is no longer needed anywhere.</div>
+    </div>
+
+    <h3 class="subsection-title" style="margin-top:32px;">Entra Connect Sync &rarr; Cloud Sync Migration</h3>
+    <div class="bp-categories">
+      <div class="bp-category">
+        <div class="bp-icon">&#9729;</div>
+        <h3>When to migrate</h3>
+        <ul class="bp-list">
+          <li>You don't need PTA, federation, Exchange hybrid writeback, or group writeback (classic).</li>
+          <li>You want a lighter agent footprint &mdash; no SQL, no full Windows server required.</li>
+          <li>Microsoft's strategic direction &mdash; new features land here first.</li>
+        </ul>
+      </div>
+      <div class="bp-category">
+        <div class="bp-icon">&#128257;</div>
+        <h3>The playbook</h3>
+        <ul class="bp-list">
+          <li>Install Cloud Sync agent alongside the existing Connect server.</li>
+          <li>Configure Cloud Sync for a <strong>pilot OU</strong> only. Connect keeps syncing everything else.</li>
+          <li>Validate for a cycle or two; compare attribute flow.</li>
+          <li>Expand pilot scope progressively, excluding from Connect as you go.</li>
+          <li>Decommission Connect only after Cloud Sync owns 100% of in-scope objects.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="arch-rec" style="margin-top:20px;">
+      <strong>&#128161; Migration is 80% pre-flight, 20% execution.</strong> If <code>dcdiag</code> is dirty or SYSVOL is still on FRS, every upgrade will fail in creative ways. Clean the baseline first, upgrade second.
+    </div>
+  </div>
+</section>
+
 <!-- ===== EXCEL TEMPLATE LIBRARY ===== -->
-<section class="section" id="templates">
+<section class="section section-alt" id="templates">
   <div class="container">
     <div class="section-header">
       <div class="section-badge">Chapter 11</div>
@@ -2570,7 +3607,7 @@ repadmin /showrepl</code></pre>
 </section>
 
 <!-- ===== FAQ ===== -->
-<section class="section section-alt" id="faq">
+<section class="section" id="faq">
   <div class="container">
     <div class="section-header">
       <div class="section-badge">Chapter 12</div>
@@ -2755,10 +3792,19 @@ repadmin /showrepl</code></pre>
           <li><a href="#windows-editions">Windows Editions</a></li>
           <li><a href="#implementation">Implementation</a></li>
           <li><a href="#architecture">Architecture</a></li>
+          <li><a href="#fsmo-roles">FSMO Roles</a></li>
+          <li><a href="#sites-replication">Sites &amp; Replication</a></li>
+          <li><a href="#dns-for-ad">DNS for AD</a></li>
+          <li><a href="#ou-delegation">OU &amp; Delegation</a></li>
+          <li><a href="#hybrid-identity">Hybrid Identity</a></li>
           <li><a href="#calculator">Cost Calculator</a></li>
+          <li><a href="#group-policy">Group Policy</a></li>
           <li><a href="#best-practices">Best Practices</a></li>
+          <li><a href="#backup-dr">Backup &amp; DR</a></li>
+          <li><a href="#monitoring">Monitoring</a></li>
           <li><a href="#security">Attacks &amp; Defense</a></li>
           <li><a href="#powershell">PowerShell Recipes</a></li>
+          <li><a href="#migration">Migration &amp; Upgrade</a></li>
           <li><a href="#alternatives">Alternatives</a></li>
           <li><a href="#templates">Excel Templates</a></li>
           <li><a href="#faq">FAQ</a></li>

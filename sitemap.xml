@@ -2,7 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://dekbacom.github.io/Active-Directory-Implement/</loc>
-    <lastmod>2026-11-17</lastmod>
+    <lastmod>2026-11-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -37,12 +37,52 @@
     <priority>0.9</priority>
   </url>
   <url>
+    <loc>https://dekbacom.github.io/Active-Directory-Implement/#fsmo-roles</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://dekbacom.github.io/Active-Directory-Implement/#sites-replication</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://dekbacom.github.io/Active-Directory-Implement/#dns-for-ad</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://dekbacom.github.io/Active-Directory-Implement/#ou-delegation</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://dekbacom.github.io/Active-Directory-Implement/#hybrid-identity</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
     <loc>https://dekbacom.github.io/Active-Directory-Implement/#calculator</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://dekbacom.github.io/Active-Directory-Implement/#group-policy</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://dekbacom.github.io/Active-Directory-Implement/#best-practices</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://dekbacom.github.io/Active-Directory-Implement/#backup-dr</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://dekbacom.github.io/Active-Directory-Implement/#monitoring</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -53,6 +93,11 @@
   </url>
   <url>
     <loc>https://dekbacom.github.io/Active-Directory-Implement/#powershell</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://dekbacom.github.io/Active-Directory-Implement/#migration</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
